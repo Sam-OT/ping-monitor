@@ -730,7 +730,7 @@ class PingMonitorApp:
         text_widget.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
 
         # Build header with left-aligned columns
-        header = f"{'Server':<25} {'Mean':<13} {'Min':<13} {'Max':<13} {'Std Dev':<13}\n"
+        header = f"{'Server':<25} {'Mean':<12} {'Min':<12} {'Max':<12} {'Std Dev':<12}\n"
         text_widget.insert('1.0', header)
         text_widget.tag_add('header', '1.0', '1.end')
         text_widget.tag_config('header', font=(Fonts.get_monospace_family(), Fonts.SIZE_NORMAL, 'bold'))
@@ -747,11 +747,11 @@ class PingMonitorApp:
 
             if result.mean is not None:
                 # Format values with ms suffix, then align
-                mean_str = f"{result.mean:.1f}ms"
-                min_str = f"{result.min:.1f}ms"
-                max_str = f"{result.max:.1f}ms"
+                mean_str = f"{result.mean:.0f}ms"
+                min_str = f"{result.min:.0f}ms"
+                max_str = f"{result.max:.0f}ms"
                 std_str = f"{result.std_dev:.1f}ms"
-                line = f"{display_name:<25} {mean_str:<13} {min_str:<13} {max_str:<13} {std_str:<13}\n"
+                line = f"{display_name:<25} {mean_str:<12} {min_str:<12} {max_str:<12} {std_str:<12}\n"
                 text_widget.insert('end', line)
 
                 # Colour-code the mean value
@@ -761,7 +761,7 @@ class PingMonitorApp:
                 text_widget.tag_add(f'mean_{line_num}', start_pos, end_pos)
                 text_widget.tag_config(f'mean_{line_num}', foreground=mean_color)
             else:
-                line = f"{display_name:<25} {'Failed':<13}\n"
+                line = f"{display_name:<25} {'Failed':<12}\n"
                 text_widget.insert('end', line)
                 start_pos = f"{line_num}.26"
                 end_pos = f"{line_num}.33"

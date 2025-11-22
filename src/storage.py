@@ -181,7 +181,7 @@ class Storage:
                 f.write(f"Ping Test Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
                 f.write("=" * 80 + "\n\n")
                 # Add header matching Results pane format
-                f.write(f"{'Server':<25} {'Mean':<13} {'Min':<13} {'Max':<13} {'Std Dev':<13}\n")
+                f.write(f"{'Server':<25} {'Mean':<12} {'Min':<12} {'Max':<12} {'Std Dev':<12}\n")
                 f.write("-" * 80 + "\n")
                 for result in results:
                     f.write(result + "\n")

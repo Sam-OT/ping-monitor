@@ -45,12 +45,12 @@ class PingResult:
         if self.mean is not None:
             # Format to match Results pane display
             display_name = self.server_name[:24] if len(self.server_name) > 24 else self.server_name
-            mean_str = f"{self.mean:.1f}ms"
-            min_str = f"{self.min:.1f}ms"
-            max_str = f"{self.max:.1f}ms"
+            mean_str = f"{self.mean:.0f}ms"
+            min_str = f"{self.min:.0f}ms"
+            max_str = f"{self.max:.0f}ms"
             std_str = f"{self.std_dev:.1f}ms"
-            return f"{display_name:<25} {mean_str:<13} {min_str:<13} {max_str:<13} {std_str:<13}"
-        return f"{self.server_name:<25} {'Failed':<13}"
+            return f"{display_name:<25} {mean_str:<12} {min_str:<12} {max_str:<12} {std_str:<12}"
+        return f"{self.server_name:<25} {'Failed':<12}"
 
 
 class PingService:
