@@ -4,7 +4,6 @@ Graph panel module for displaying ping results using matplotlib.
 import tkinter as tk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.pyplot as plt
 from typing import List, Optional
 from styles import Colours, Fonts, Styles
 
@@ -46,8 +45,7 @@ class GraphPanel:
         self.ax.set_facecolor(Colours.BG_SECONDARY)
         self.ax.grid(True, linestyle='--', alpha=0.3, color=Colours.BORDER_MEDIUM)
 
-        # Force integer ticks on x-axis
-        self.ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        # Set x-axis for ping count display
         self.ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
         self.ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL,
@@ -109,8 +107,8 @@ class GraphPanel:
         self.ax.set_facecolor(Colours.BG_SECONDARY)
         self.ax.grid(True, linestyle='--', alpha=0.3, color=Colours.BORDER_MEDIUM)
 
-        # Set FIXED x-axis range based on duration
-        self.ax.set_xlim(0, duration)
+        # Set initial x-axis range (will auto-scale as data comes in)
+        self.ax.set_xlim(0, 10)
 
         # Set initial y-axis range
         self.current_ylim_max = 100
@@ -196,6 +194,10 @@ class GraphPanel:
             self.ax.scatter([latest_ping], [0],
                           color=Colours.STATUS_FAILED, marker='x',
                           s=50, zorder=5)
+
+        # Auto-scale x-axis to show all pings
+        max_ping = max(self.ping_numbers)
+        self.ax.set_xlim(0, max(10, max_ping * 1.1))
 
         # Only redraw (non-blocking)
         self.canvas.draw_idle()

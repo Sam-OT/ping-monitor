@@ -148,7 +148,7 @@ class PingService:
 
             ping_count += 1
 
-            # Call progress callback if provided
+            # Call progress callback with ping count
             if progress_callback:
                 progress_callback(latency, ping_count, duration_seconds)
 

@@ -613,10 +613,9 @@ class PingMonitorApp:
                     title = graph_panel.current_server
                 ax.set_title(title, fontsize=Fonts.SIZE_TITLE)
 
-                # Set axis limits - use maximum of duration and actual data range
+                # Set axis limits - use actual ping count
                 max_ping_num = max(graph_panel.ping_numbers) if graph_panel.ping_numbers else 10
-                x_limit = max(graph_panel.duration, max_ping_num) if graph_panel.duration > 0 else max_ping_num
-                ax.set_xlim(0, x_limit)
+                ax.set_xlim(0, max(10, max_ping_num * 1.1))
                 if valid_pings:
                     max_lat = max(valid_latencies)
                     ax.set_ylim(0, max_lat * 1.1)
