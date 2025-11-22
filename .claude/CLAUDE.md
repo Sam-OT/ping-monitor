@@ -3,6 +3,11 @@
 ## Project Overview
 A modern GUI application for monitoring network latency to multiple servers. Built with Python, tkinter, and matplotlib. Designed to be packaged as a standalone .exe with no Python installation required.
 
+## Development Environment
+- **Host OS**: Windows
+- **Development**: WSL (Windows Subsystem for Linux)
+- **Note**: Paths shown are Windows paths (e.g., `d:\Users\...`) but development is done in WSL environment
+
 ## Key Requirements (from user)
 - **Visual appeal**: Modern, clean UI with good spacing and colors
 - **User-friendly**: Easy to add/remove/select servers with custom names
