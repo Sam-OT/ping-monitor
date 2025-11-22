@@ -122,33 +122,65 @@ ping-monitor/
 ## Building & Running
 
 ### Development Setup
-```bash
-# Using uv (recommended)
-pip install uv
-uv sync
-uv run python src/main.py
 
-# Using pip
+**Using uv (recommended):**
+```bash
+# Install uv (if not already installed)
+pip install uv
+
+# Install dependencies
+uv sync
+
+# Run the application
+uv run python src/main.py
+```
+
+**Using pip:**
+```bash
+# Create virtual environment
 python -m venv .venv
-.venv\Scripts\activate  # Windows
+
+# Activate (Linux/WSL/macOS)
+source .venv/bin/activate
+
+# Activate (Windows)
+.venv\Scripts\activate
+
+# Install dependencies
 pip install -e .
+
+# Run application
 python src/main.py
 ```
 
 ### Building Standalone Executable
-```bash
-# Using uv
-uv sync --extra dev
-uv run pyinstaller build.spec
 
-# Using pip
-pip install pyinstaller
-pyinstaller build.spec
+**IMPORTANT**: PyInstaller creates executables for the platform it runs on:
+- To build Windows `.exe` → must run on Windows (not WSL)
+- To build Linux binary → must run on Linux/WSL
+- To build macOS app → must run on macOS
+
+**Build commands:**
+```bash
+# Install build dependencies
+uv sync --extra dev
+
+# Build executable
+uv run pyinstaller build.spec
 ```
 
-Output: `dist/PingMonitor.exe`
+**Output locations:**
+- Windows: `dist/PingMonitor.exe`
+- Linux/macOS: `dist/PingMonitor` (binary)
+
+**WSL Users**: If developing in WSL but need Windows `.exe`:
+1. Exit WSL
+2. Open Windows PowerShell/CMD in project directory
+3. Run: `uv sync --extra dev`
+4. Run: `uv run pyinstaller build.spec`
 
 ### PyInstaller Configuration Notes
+- All paths in `build.spec` use Unix-style forward slashes (cross-platform compatible)
 - `--onefile`: Single executable
 - `--windowed`: No console window (GUI mode)
 - Hidden imports: matplotlib.backends.backend_tkagg

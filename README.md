@@ -30,9 +30,40 @@ Click "+" to add servers. Click a server name to run a ping test. Select duratio
 
 ## Building from Source
 
+### Development (Linux/WSL/macOS)
+
 ```bash
+# Install dependencies
+uv sync
+
+# Run the application
+uv run python src/main.py
+```
+
+### Building Executable
+
+**Important**: PyInstaller creates executables for the platform it runs on. To create a Windows `.exe`, you must build on Windows. To create a Linux binary, build on Linux.
+
+#### On Windows (PowerShell/CMD)
+
+```powershell
+# Install build dependencies
 uv sync --extra dev
+
+# Build executable
+uv run pyinstaller build.spec
+```
+
+#### On Linux/WSL/macOS
+
+```bash
+# Install build dependencies
+uv sync --extra dev
+
+# Build executable (creates platform-specific binary)
 uv run pyinstaller build.spec
 ```
 
 The executable will be created in the `dist/` directory.
+
+**WSL Users**: If developing in WSL but need a Windows `.exe`, you must run PyInstaller from Windows PowerShell/CMD, not from within WSL.

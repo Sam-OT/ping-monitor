@@ -11,7 +11,7 @@ The executable will be created in the dist/ directory.
 block_cipher = None
 
 a = Analysis(
-    ['src\\main.py'],
+    ['src/main.py'],
     pathex=[],
     binaries=[],
     datas=[],
