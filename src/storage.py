@@ -63,7 +63,7 @@ class Storage:
         Load server configurations from JSON file.
 
         Returns:
-            List of Server objects
+            List of Server objects (sorted alphabetically by name)
         """
         if not self.config_file.exists():
             # Return default servers if no config exists
@@ -72,7 +72,9 @@ class Storage:
         try:
             with open(self.config_file, 'r') as f:
                 data = json.load(f)
-                return [Server.from_dict(s) for s in data.get("servers", [])]
+                servers = [Server.from_dict(s) for s in data.get("servers", [])]
+                # Always return sorted list
+                return sorted(servers, key=lambda s: s.name.lower())
         except (json.JSONDecodeError, KeyError, IOError):
             # If file is corrupted, create default config
             return self._create_default_config()
@@ -144,6 +146,20 @@ class Storage:
         else:
             return servers, False
 
+    def sort_servers(self, servers: List[Server]) -> List[Server]:
+        """
+        Sort servers alphabetically by name.
+
+        Args:
+            servers: List of servers to sort
+
+        Returns:
+            Sorted list of servers
+        """
+        sorted_servers = sorted(servers, key=lambda s: s.name.lower())
+        self.save_servers(sorted_servers)
+        return sorted_servers
+
     def save_batch_results(self, results: List[str]) -> tuple[bool, str]:
         """
         Save batch ping results to a timestamped file.
@@ -161,7 +177,10 @@ class Storage:
         try:
             with open(filepath, 'w') as f:
                 f.write(f"Ping Test Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write("=" * 50 + "\n\n")
+                f.write("=" * 80 + "\n\n")
+                # Add header matching Results pane format
+                f.write(f"{'Server':<25} {'Mean':<13} {'Min':<13} {'Max':<13} {'Std Dev':<13}\n")
+                f.write("-" * 80 + "\n")
                 for result in results:
                     f.write(result + "\n")
 

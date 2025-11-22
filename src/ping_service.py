@@ -42,8 +42,14 @@ class PingResult:
     def __str__(self):
         """String representation for batch results."""
         if self.mean is not None:
-            return f"{self.server_name}: {self.mean:.2f}ms"
-        return f"{self.server_name}: Failed"
+            # Format to match Results pane display
+            display_name = self.server_name[:24] if len(self.server_name) > 24 else self.server_name
+            mean_str = f"{self.mean:.1f}ms"
+            min_str = f"{self.min:.1f}ms"
+            max_str = f"{self.max:.1f}ms"
+            std_str = f"{self.std_dev:.1f}ms"
+            return f"{display_name:<25} {mean_str:<13} {min_str:<13} {max_str:<13} {std_str:<13}"
+        return f"{self.server_name:<25} {'Failed':<13}"
 
 
 class PingService:

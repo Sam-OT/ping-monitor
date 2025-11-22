@@ -18,10 +18,10 @@ class Colours:
     TEXT_LIGHT = "#666666"
 
     # Status colours (for ping results) - more muted
-    STATUS_EXCELLENT = "#008000"  # Dark green - < 50ms
-    STATUS_GOOD = "#4C9900"       # Green - 50-100ms
-    STATUS_FAIR = "#CC6600"       # Orange - 100-200ms
-    STATUS_POOR = "#CC0000"       # Dark red - > 200ms
+    STATUS_EXCELLENT = "#008000"  # Dark green - < 20ms
+    STATUS_GOOD = "#4C9900"       # Green - 20-60ms (fair)
+    STATUS_FAIR = "#CC6600"       # Orange - 60-110ms (poor)
+    STATUS_POOR = "#CC0000"       # Dark red - >= 110ms (bad)
     STATUS_FAILED = "#666666"     # Gray - failed ping
 
     # Border colours
@@ -129,11 +129,11 @@ class Styles:
         """
         if latency_ms < 0:
             return Colours.STATUS_FAILED
-        elif latency_ms < 50:
+        elif latency_ms < 20:
             return Colours.STATUS_EXCELLENT
-        elif latency_ms < 100:
+        elif latency_ms < 60:
             return Colours.STATUS_GOOD
-        elif latency_ms < 200:
+        elif latency_ms < 110:
             return Colours.STATUS_FAIR
         else:
             return Colours.STATUS_POOR

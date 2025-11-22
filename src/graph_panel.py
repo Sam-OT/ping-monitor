@@ -6,7 +6,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from typing import List, Optional
-from styles import Colours, Fonts
+from styles import Colours, Fonts, Styles
 
 
 class GraphPanel:
@@ -148,21 +148,14 @@ class GraphPanel:
         if valid_pings:
             valid_ping_numbers, valid_latencies = zip(*valid_pings)
 
-            # Determine line colour based on average latency
-            avg_latency = sum(valid_latencies) / len(valid_latencies)
-            if avg_latency < 50:
-                line_colour = Colours.STATUS_EXCELLENT
-            elif avg_latency < 100:
-                line_colour = Colours.STATUS_GOOD
-            elif avg_latency < 200:
-                line_colour = Colours.STATUS_FAIR
-            else:
-                line_colour = Colours.STATUS_POOR
-
-            # Plot the line
+            # Plot line in gray as background
             self.ax.plot(valid_ping_numbers, valid_latencies,
-                        color=line_colour, linewidth=2, marker='o',
-                        markersize=4, label='Latency')
+                        color=Colours.BORDER_MEDIUM, linewidth=1.5, alpha=0.3, zorder=1)
+
+            # Colour each point based on its individual latency
+            for ping_num, latency in zip(valid_ping_numbers, valid_latencies):
+                point_colour = Styles.get_status_colour(latency)
+                self.ax.scatter([ping_num], [latency], color=point_colour, s=30, zorder=2)
 
             # Add failed ping markers if any
             failed_pings = [pn for pn, lat in zip(self.ping_numbers, self.latencies) if lat == 0]

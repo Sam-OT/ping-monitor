@@ -2,7 +2,7 @@
 Main GUI application for Ping Monitor.
 """
 import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk
+from tkinter import messagebox, simpledialog, ttk, filedialog
 import threading
 from typing import Optional
 from ping_service import PingService, PingResult
@@ -64,6 +64,9 @@ class PingMonitorApp:
         # Middle section: Duration selector
         self._build_duration_section(main_frame)
 
+        # Control section: Cancel button
+        self._build_control_section(main_frame)
+
         # Statistics section
         self._build_stats_section(main_frame)
 
@@ -119,6 +122,10 @@ class PingMonitorApp:
                  command=self._remove_selected_server,
                  **Styles.get_button_style()).pack(pady=2)
 
+        tk.Button(button_frame, text="Import",
+                 command=self._import_servers_dialog,
+                 **Styles.get_button_style()).pack(pady=2)
+
         tk.Button(button_frame, text="Test",
                  command=self._test_selected_servers,
                  **Styles.get_button_style()).pack(pady=2)
@@ -143,7 +150,7 @@ class PingMonitorApp:
         self.use_custom_duration = tk.BooleanVar(value=False)
 
         durations = [
-            ("10 seconds", 10),
+            ("5 seconds", 5),
             ("30 seconds", 30),
             ("1 minute", 60),
             ("5 minutes", 300)
@@ -170,6 +177,21 @@ class PingMonitorApp:
         self.custom_duration_entry.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
         self.custom_duration_entry.bind('<FocusIn>', lambda e: self.use_custom_duration.set(True))
         self.custom_duration_entry.bind('<Return>', lambda e: self._on_duration_changed())
+
+    def _build_control_section(self, parent):
+        """Build the control section with cancel button."""
+        section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
+        section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
+
+        # Cancel button (centered)
+        button_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
+        button_container.pack()
+
+        self.cancel_button = tk.Button(button_container, text="Cancel Test",
+                                      command=self._cancel_test,
+                                      state=tk.DISABLED,
+                                      **Styles.get_button_style())
+        self.cancel_button.pack(padx=Spacing.PAD_SMALL)
 
     def _build_stats_section(self, parent):
         """Build the statistics display section."""
@@ -207,20 +229,14 @@ class PingMonitorApp:
         section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
         section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_SMALL))
 
-        # Container for batch and cancel buttons
+        # Container for batch button
         button_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
         button_container.pack()
 
         self.batch_button = tk.Button(button_container, text="Run All Servers",
                                      command=self._run_batch_test,
                                      **Styles.get_button_style())
-        self.batch_button.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
-
-        self.cancel_button = tk.Button(button_container, text="Cancel Test",
-                                      command=self._cancel_test,
-                                      **Styles.get_button_style())
-        self.cancel_button.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
-        self.cancel_button.pack_forget()  # Hide initially
+        self.batch_button.pack(padx=Spacing.PAD_SMALL)
 
     def _build_status_bar(self, parent):
         """Build the status bar at the bottom."""
@@ -331,15 +347,115 @@ class PingMonitorApp:
                 messagebox.showerror("Error", "Failed to remove server")
 
     def _remove_selected_server(self):
-        """Remove the currently selected server."""
+        """Remove the currently selected server(s)."""
         selection = self.server_listbox.curselection()
         if not selection:
             messagebox.showwarning("No Selection", "Please select a server to remove")
             return
 
-        index = selection[0]
-        server = self.servers[index]
-        self._remove_server(server.name)
+        # Get all selected servers
+        selected_servers = [self.servers[i] for i in selection]
+
+        # Confirm removal
+        if len(selected_servers) == 1:
+            confirm_msg = f"Are you sure you want to remove '{selected_servers[0].name}'?"
+        else:
+            confirm_msg = f"Are you sure you want to remove {len(selected_servers)} servers?"
+
+        if not messagebox.askyesno("Confirm Removal", confirm_msg):
+            return
+
+        # Remove all selected servers
+        for server in selected_servers:
+            self.servers, success = self.storage.remove_server(self.servers, server.name)
+            if not success:
+                messagebox.showerror("Error", f"Failed to remove server: {server.name}")
+                return
+
+        self._refresh_server_list()
+        self._set_status(f"Removed {len(selected_servers)} server(s)")
+
+    def _import_servers_dialog(self):
+        """Import servers from a text file."""
+        # Open file dialog
+        filepath = filedialog.askopenfilename(
+            title="Import Server List",
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+            parent=self.root
+        )
+
+        if not filepath:
+            return  # User cancelled
+
+        # Read and parse the file
+        added_count = 0
+        skipped_count = 0
+        failed_validation = []
+
+        try:
+            with open(filepath, 'r') as f:
+                lines = f.readlines()
+
+            self._set_status(f"Importing servers...")
+
+            for line_num, line in enumerate(lines, 1):
+                line = line.strip()
+
+                # Skip empty lines and comments
+                if not line or line.startswith('#'):
+                    continue
+
+                # Parse "Name: IP/hostname" format
+                if ':' not in line:
+                    skipped_count += 1
+                    continue
+
+                name, ip = line.split(':', 1)
+                name = name.strip()
+                ip = ip.strip()
+
+                if not name or not ip:
+                    skipped_count += 1
+                    continue
+
+                # Check if server already exists
+                if any(s.name == name for s in self.servers):
+                    skipped_count += 1
+                    continue
+
+                # Validate by pinging (show progress)
+                self._set_status(f"Validating {name} ({ip})...")
+                self.root.update()  # Update UI to show status
+                if not self.ping_service.validate_ip(ip):
+                    failed_validation.append(f"{name}: {ip}")
+                    skipped_count += 1
+                    continue
+
+                # Add server
+                self.servers, success, error = self.storage.add_server(self.servers, name, ip)
+                if success:
+                    added_count += 1
+                else:
+                    skipped_count += 1
+
+            # Sort alphabetically
+            self.servers = self.storage.sort_servers(self.servers)
+            self._refresh_server_list()
+
+            # Show summary
+            summary = f"Import complete!\n\nAdded: {added_count} server(s)\nSkipped: {skipped_count} server(s)"
+            if failed_validation:
+                summary += f"\n\nFailed validation ({len(failed_validation)}):\n"
+                summary += "\n".join(failed_validation[:5])  # Show first 5
+                if len(failed_validation) > 5:
+                    summary += f"\n... and {len(failed_validation) - 5} more"
+
+            messagebox.showinfo("Import Results", summary)
+            self._set_status(f"Imported {added_count} server(s)")
+
+        except Exception as e:
+            messagebox.showerror("Import Error", f"Failed to import file:\n{str(e)}")
+            self._set_status("Import failed")
 
     def _test_selected_servers(self):
         """Test the currently selected server(s)."""
@@ -393,7 +509,7 @@ class PingMonitorApp:
         self.current_test_running = True
         self.active_tests = len(selected_servers)
         self.cancel_event.clear()  # Clear any previous cancel signal
-        self.cancel_button.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)  # Show cancel button
+        self.cancel_button.config(state=tk.NORMAL)  # Enable cancel button
 
         for server in selected_servers:
             self._start_ping_test(server)
@@ -402,7 +518,7 @@ class PingMonitorApp:
         """Cancel the currently running test."""
         self.cancel_event.set()  # Signal all threads to stop
         self._set_status("Test cancelled by user")
-        self.cancel_button.pack_forget()  # Hide cancel button
+        self.cancel_button.config(state=tk.DISABLED)  # Disable cancel button
 
     def _save_current_results(self):
         """Save current test results to a file."""
@@ -482,7 +598,7 @@ class PingMonitorApp:
         # Update stats when all tests are complete
         if self.active_tests == 0:
             self.current_test_running = False
-            self.cancel_button.pack_forget()  # Hide cancel button
+            self.cancel_button.config(state=tk.DISABLED)  # Disable cancel button
             self._update_stats_display()
             self._set_status(f"Test complete ({len(self.current_results)} server(s))")
 
@@ -536,7 +652,7 @@ class PingMonitorApp:
                 line = f"{display_name:<25} {mean_str:<13} {min_str:<13} {max_str:<13} {std_str:<13}\n"
                 text_widget.insert('end', line)
 
-                # Color-code the mean value
+                # Colour-code the mean value
                 mean_color = Styles.get_status_colour(result.mean)
                 start_pos = f"{line_num}.26"
                 end_pos = f"{line_num}.{26 + len(mean_str)}"
@@ -586,23 +702,34 @@ class PingMonitorApp:
         for widget in self.graphs_container.winfo_children():
             widget.destroy()
         self.graph_panels.clear()
+
+        # Enable cancel button
+        self.cancel_event.clear()
+        self.cancel_button.config(state=tk.NORMAL)
+
         self._set_status("Running batch test...")
 
         def run_batch():
             results = []
             for i, server in enumerate(self.servers):
+                # Check for cancellation
+                if self.cancel_event.is_set():
+                    self.root.after(0, lambda: self._set_status("Batch test cancelled"))
+                    break
+
                 self.root.after(0, lambda s=server, idx=i:
                               self._set_status(f"Testing {idx+1}/{len(self.servers)}: {s.name}..."))
 
                 result = self.ping_service.ping_continuous(
-                    server.name, server.ip, self.selected_duration
+                    server.name, server.ip, self.selected_duration,
+                    cancel_event=self.cancel_event
                 )
                 results.append(str(result))
 
             # Save results
             success, filepath = self.storage.save_batch_results(results)
 
-            # Update UI
+            # Update UI and hide cancel button
             self.root.after(0, lambda: self._batch_complete(success, filepath))
 
         thread = threading.Thread(target=run_batch, daemon=True)
@@ -611,6 +738,7 @@ class PingMonitorApp:
     def _batch_complete(self, success: bool, filepath: str):
         """Handle batch test completion."""
         self.current_test_running = False
+        self.cancel_button.config(state=tk.DISABLED)  # Disable cancel button
 
         if success:
             self._set_status(f"Batch test complete. Results saved.")
