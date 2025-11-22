@@ -7,6 +7,7 @@ import re
 import statistics
 import time
 import threading
+import random
 from typing import List, Dict, Callable, Optional
 
 
@@ -127,6 +128,10 @@ class PingService:
         Returns:
             PingResult object with statistics
         """
+        # Add random offset (0-0.9 seconds) to stagger pings across servers
+        initial_offset = random.uniform(0, 0.9)
+        time.sleep(initial_offset)
+
         latencies = []
         start_time = time.time()
 
