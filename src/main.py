@@ -43,7 +43,8 @@ class PingMonitorApp:
 
         # UI Components
         self.server_listbox = None
-        self.stats_labels = {}
+        self.stats_container = None  # Container for per-server stats
+        self.stats_placeholder = None  # Placeholder label when no results
         self.graph_panels = {}  # Multiple graph panels for tiling
         self.graphs_container = None
         self.cancel_button = None
@@ -139,6 +140,7 @@ class PingMonitorApp:
 
         # Radio buttons for duration
         self.duration_var = tk.IntVar(value=60)  # Default 1 minute
+        self.use_custom_duration = tk.BooleanVar(value=False)
 
         durations = [
             ("10 seconds", 10),
@@ -154,42 +156,42 @@ class PingMonitorApp:
                                selectcolor=Colours.BG_SECONDARY,
                                activebackground=Colours.BG_PRIMARY,
                                cursor="hand2",
-                               command=self._on_duration_changed)
+                               command=lambda: self.use_custom_duration.set(False))
             rb.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
+
+        # Custom duration entry
+        tk.Label(section_frame, text="Custom (seconds):", bg=Colours.BG_PRIMARY,
+                font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL)).pack(
+                    side=tk.LEFT, padx=(Spacing.PAD_MEDIUM, Spacing.PAD_SMALL))
+
+        self.custom_duration_entry = tk.Entry(section_frame,
+                                              font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
+                                              width=6)
+        self.custom_duration_entry.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
+        self.custom_duration_entry.bind('<FocusIn>', lambda e: self.use_custom_duration.set(True))
+        self.custom_duration_entry.bind('<Return>', lambda e: self._on_duration_changed())
 
     def _build_stats_section(self, parent):
         """Build the statistics display section."""
-        section_frame = tk.Frame(parent, bg=Colours.BG_SECONDARY, relief=tk.RIDGE, bd=2)
-        section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
+        section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY, relief=tk.SUNKEN, bd=1)
+        section_frame.pack(fill=tk.BOTH, expand=True, pady=(0, Spacing.PAD_MEDIUM))
 
-        tk.Label(section_frame, text="Statistics:", **Styles.get_heading_style()).pack(
-            anchor=tk.W, padx=Spacing.PAD_MEDIUM, pady=(Spacing.PAD_SMALL, 0))
+        # Header
+        header = tk.Frame(section_frame, bg=Colours.BG_SECONDARY, relief=tk.RAISED, bd=1)
+        header.pack(fill=tk.X)
+        tk.Label(header, text="Results", bg=Colours.BG_SECONDARY,
+                font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL, "bold")).pack(
+                    anchor=tk.W, padx=Spacing.PAD_SMALL, pady=2)
 
-        # Grid for statistics
-        stats_grid = tk.Frame(section_frame, bg=Colours.BG_SECONDARY)
-        stats_grid.pack(fill=tk.X, padx=Spacing.PAD_LARGE, pady=Spacing.PAD_MEDIUM)
+        # Container for results (will hold per-server stats)
+        self.stats_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
+        self.stats_container.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
 
-        # Create stat labels
-        stats = [
-            ("Mean:", "mean"),
-            ("Min:", "min"),
-            ("Max:", "max"),
-            ("Std Dev:", "std_dev")
-        ]
-
-        for col, (label_text, key) in enumerate(stats):
-            # Label
-            tk.Label(stats_grid, text=label_text,
-                    font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
-                    bg=Colours.BG_SECONDARY, fg=Colours.TEXT_SECONDARY).grid(
-                row=0, column=col*2, sticky=tk.W, padx=(0, Spacing.PAD_SMALL))
-
-            # Value
-            value_label = tk.Label(stats_grid, text="--",
-                                  font=(Fonts.get_default_family(), Fonts.SIZE_LARGE_STAT, "bold"),
-                                  bg=Colours.BG_SECONDARY, fg=Colours.TEXT_PRIMARY)
-            value_label.grid(row=0, column=col*2+1, sticky=tk.W, padx=(0, Spacing.PAD_LARGE))
-            self.stats_labels[key] = value_label
+        # Initial message
+        self.stats_placeholder = tk.Label(self.stats_container, text="No test results yet",
+                                         bg=Colours.BG_PRIMARY, fg=Colours.TEXT_LIGHT,
+                                         font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL))
+        self.stats_placeholder.pack(pady=Spacing.PAD_MEDIUM)
 
     def _build_graph_section(self, parent):
         """Build the graph display section."""
@@ -350,6 +352,11 @@ class PingMonitorApp:
             messagebox.showwarning("Test Running", "A test is already running. Please wait for it to complete.")
             return
 
+        # Update duration (in case custom was entered)
+        self._on_duration_changed()
+        if self.selected_duration <= 0:
+            return  # Invalid duration, warning already shown
+
         # Clear previous results and graphs
         self.current_results.clear()
         for widget in self.graphs_container.winfo_children():
@@ -419,7 +426,17 @@ class PingMonitorApp:
 
     def _on_duration_changed(self):
         """Handle duration selection change."""
-        self.selected_duration = self.duration_var.get()
+        if self.use_custom_duration.get():
+            try:
+                custom = int(self.custom_duration_entry.get())
+                if custom > 0:
+                    self.selected_duration = custom
+                else:
+                    messagebox.showwarning("Invalid Duration", "Duration must be positive")
+            except ValueError:
+                messagebox.showwarning("Invalid Duration", "Please enter a valid number")
+        else:
+            self.selected_duration = self.duration_var.get()
 
     def _start_ping_test(self, server: Server):
         """Start a ping test for a specific server."""
@@ -462,60 +479,85 @@ class PingMonitorApp:
         # Decrement active tests counter
         self.active_tests -= 1
 
-        # Update stats only if this is the last test or single test
+        # Update stats when all tests are complete
         if self.active_tests == 0:
             self.current_test_running = False
             self.cancel_button.pack_forget()  # Hide cancel button
+            self._update_stats_display()
+            self._set_status(f"Test complete ({len(self.current_results)} server(s))")
 
-            # If only one result, show it in the stats panel
-            if len(self.current_results) == 1:
-                result = list(self.current_results.values())[0]
-                if result.mean is not None:
-                    self.stats_labels["mean"].config(
-                        text=f"{result.mean:.2f} ms",
-                        fg=Styles.get_status_color(result.mean)
-                    )
-                    self.stats_labels["min"].config(
-                        text=f"{result.min:.2f} ms",
-                        fg=Styles.get_status_color(result.min)
-                    )
-                    self.stats_labels["max"].config(
-                        text=f"{result.max:.2f} ms",
-                        fg=Styles.get_status_color(result.max)
-                    )
-                    self.stats_labels["std_dev"].config(
-                        text=f"{result.std_dev:.2f} ms",
-                        fg=Colours.TEXT_PRIMARY
-                    )
-                    self._set_status(f"Test complete: {result.server_name} - Avg: {result.mean:.2f}ms")
-                else:
-                    self._set_status(f"Test failed: {result.server_name}")
+    def _update_stats_display(self):
+        """Update the stats display with current results."""
+        # Clear existing stats
+        for widget in self.stats_container.winfo_children():
+            widget.destroy()
+
+        if not self.current_results:
+            # Show placeholder
+            self.stats_placeholder = tk.Label(self.stats_container, text="No test results yet",
+                                             bg=Colours.BG_PRIMARY, fg=Colours.TEXT_LIGHT,
+                                             font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL))
+            self.stats_placeholder.pack(pady=Spacing.PAD_MEDIUM)
+            return
+
+        # Create a read-only Text widget for selectable, monospace display
+        text_widget = tk.Text(self.stats_container,
+                             font=(Fonts.get_monospace_family(), Fonts.SIZE_NORMAL),
+                             bg=Colours.BG_PRIMARY,
+                             fg=Colours.TEXT_PRIMARY,
+                             relief=tk.FLAT,
+                             height=len(self.current_results) + 1,  # +1 for header
+                             wrap=tk.NONE,
+                             cursor="arrow")
+        text_widget.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+
+        # Build header
+        header = f"{'Server':<25} {'Mean':>10} {'Min':>10} {'Max':>10} {'Std Dev':>10}\n"
+        text_widget.insert('1.0', header)
+        text_widget.tag_add('header', '1.0', '1.end')
+        text_widget.tag_config('header', font=(Fonts.get_monospace_family(), Fonts.SIZE_NORMAL, 'bold'))
+
+        # Add separator line
+        separator = "-" * 70 + "\n"
+        text_widget.insert('end', separator)
+
+        # Add results for each server
+        line_num = 3
+        for server_name, result in self.current_results.items():
+            # Truncate server name if too long
+            display_name = server_name[:24] if len(server_name) > 24 else server_name
+
+            if result.mean is not None:
+                line = f"{display_name:<25} {result.mean:>9.1f}ms {result.min:>9.1f}ms {result.max:>9.1f}ms {result.std_dev:>9.1f}ms\n"
+                text_widget.insert('end', line)
+
+                # Color-code the mean value
+                mean_color = Styles.get_status_colour(result.mean)
+                start_pos = f"{line_num}.26"
+                end_pos = f"{line_num}.36"
+                text_widget.tag_add(f'mean_{line_num}', start_pos, end_pos)
+                text_widget.tag_config(f'mean_{line_num}', foreground=mean_color)
             else:
-                # Multiple tests complete
-                self._set_status(f"All tests complete ({len(self.current_results)} servers)")
-                # Calculate average across all servers
-                all_means = [r.mean for r in self.current_results.values() if r.mean is not None]
-                if all_means:
-                    avg_mean = sum(all_means) / len(all_means)
-                    self.stats_labels["mean"].config(
-                        text=f"{avg_mean:.2f} ms",
-                        fg=Styles.get_status_color(avg_mean)
-                    )
-                    # Show overall min/max across all servers
-                    all_mins = [r.min for r in self.current_results.values() if r.min is not None]
-                    all_maxs = [r.max for r in self.current_results.values() if r.max is not None]
-                    if all_mins:
-                        self.stats_labels["min"].config(text=f"{min(all_mins):.2f} ms",
-                                                       fg=Styles.get_status_color(min(all_mins)))
-                    if all_maxs:
-                        self.stats_labels["max"].config(text=f"{max(all_maxs):.2f} ms",
-                                                       fg=Styles.get_status_color(max(all_maxs)))
-                    self.stats_labels["std_dev"].config(text="--", fg=Colours.TEXT_PRIMARY)
+                line = f"{display_name:<25} {'Failed':>10}\n"
+                text_widget.insert('end', line)
+                start_pos = f"{line_num}.26"
+                end_pos = f"{line_num}.36"
+                text_widget.tag_add(f'failed_{line_num}', start_pos, end_pos)
+                text_widget.tag_config(f'failed_{line_num}', foreground=Colours.STATUS_FAILED)
+
+            line_num += 1
+
+        # Make read-only but allow selection
+        text_widget.config(state='disabled')
 
     def _clear_stats(self):
         """Clear all statistics displays."""
-        for label in self.stats_labels.values():
-            label.config(text="--", fg=Colours.TEXT_PRIMARY)
+        for widget in self.stats_container.winfo_children():
+            widget.destroy()
+        self.stats_placeholder = tk.Label(self.stats_container, text="No test results yet",
+                                         bg=Colours.BG_PRIMARY, fg=Colours.TEXT_LIGHT,
+                                         font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL))
+        self.stats_placeholder.pack(pady=Spacing.PAD_MEDIUM)
 
     def _run_batch_test(self):
         """Run ping tests on all servers and save results."""
@@ -535,7 +577,10 @@ class PingMonitorApp:
 
         self.current_test_running = True
         self._clear_stats()
-        self.graph_panel.clear()
+        # Clear graphs
+        for widget in self.graphs_container.winfo_children():
+            widget.destroy()
+        self.graph_panels.clear()
         self._set_status("Running batch test...")
 
         def run_batch():

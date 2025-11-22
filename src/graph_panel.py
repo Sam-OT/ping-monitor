@@ -4,6 +4,7 @@ Graph panel module for displaying ping results using matplotlib.
 import tkinter as tk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
 from typing import List, Optional
 from styles import Colours, Fonts
 
@@ -39,6 +40,9 @@ class GraphPanel:
         # Style the plot
         self.ax.set_facecolor(Colours.BG_SECONDARY)
         self.ax.grid(True, linestyle='--', alpha=0.3, color=Colours.BORDER_MEDIUM)
+
+        # Force integer ticks on x-axis
+        self.ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
         self.ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
         self.ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL,
@@ -85,17 +89,21 @@ class GraphPanel:
             server_name: Name of the server being tested
             server_ip: IP address of the server
         """
-        self.current_server = server_name
+        # Title format: "Server Name: IP" - store for later use
+        title = f'{server_name}: {server_ip}' if server_ip else server_name
+        self.current_server = title  # Store the full title
+
         self.ping_numbers = []
         self.latencies = []
         self.clear()
 
-        # Title format: "Server Name: IP"
-        title = f'{server_name}: {server_ip}' if server_ip else server_name
+        # Set title - make it prominent
         self.ax.set_title(title,
-                         fontsize=Fonts.SIZE_HEADING,
+                         fontsize=Fonts.SIZE_TITLE,  # Larger font
                          fontfamily=Fonts.get_default_family(),
-                         color=Colours.TEXT_PRIMARY)
+                         fontweight='bold',  # Bold text
+                         color=Colours.TEXT_PRIMARY,
+                         pad=10)  # More padding
         self.canvas.draw()
 
     def add_data_point(self, ping_number: int, latency: Optional[float]):
@@ -154,12 +162,20 @@ class GraphPanel:
 
         # Style the plot
         self.ax.set_facecolor(Colours.BG_SECONDARY)
-        self.ax.grid(True, linestyle='--', alpha=0.3, colour=Colours.BORDER_MEDIUM)
+        self.ax.grid(True, linestyle='--', alpha=0.3, color=Colours.BORDER_MEDIUM)  # matplotlib uses 'color' not 'colour'
         self.ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
         self.ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
-        # Keep the same title (already set in start_new_test)
+
+        # Re-set the title (was cleared with ax.clear())
+        if self.current_server:
+            self.ax.set_title(self.current_server,
+                             fontsize=Fonts.SIZE_TITLE,
+                             fontfamily=Fonts.get_default_family(),
+                             fontweight='bold',
+                             color=Colours.TEXT_PRIMARY,
+                             pad=10)
 
         # Set spine colours
         for spine in self.ax.spines.values():
