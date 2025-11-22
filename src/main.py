@@ -146,7 +146,7 @@ class PingMonitorApp:
                 **Styles.get_heading_style()).pack(side=tk.LEFT, padx=(0, Spacing.PAD_MEDIUM))
 
         # Radio buttons for duration
-        self.duration_var = tk.IntVar(value=60)  # Default 1 minute
+        self.duration_var = tk.IntVar(value=5)  # Default 5 seconds
         self.use_custom_duration = tk.BooleanVar(value=False)
 
         durations = [
