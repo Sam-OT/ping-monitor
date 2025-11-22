@@ -1,0 +1,28 @@
+[project]
+name = "ping-monitor"
+version = "1.0.0"
+description = "A modern GUI application for monitoring network latency to multiple servers"
+authors = [
+    {name = "Ping Monitor Team"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.8.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[project.scripts]
+ping-monitor = "main:main"
