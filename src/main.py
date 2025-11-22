@@ -5,6 +5,9 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk, filedialog
 import threading
 from typing import Optional
+from datetime import datetime
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from ping_service import PingService, PingResult
 from storage import Storage, Server
 from graph_panel import GraphPanel
@@ -130,7 +133,7 @@ class PingMonitorApp:
                  command=self._test_selected_servers,
                  **Styles.get_button_style()).pack(pady=2)
 
-        tk.Button(button_frame, text="Save Results",
+        tk.Button(button_frame, text="Save",
                  command=self._save_current_results,
                  **Styles.get_button_style()).pack(pady=2)
 
@@ -521,24 +524,124 @@ class PingMonitorApp:
         self.cancel_button.config(state=tk.DISABLED)  # Disable cancel button
 
     def _save_current_results(self):
-        """Save current test results to a file."""
+        """Save current test results to text file and PNG image."""
         if not self.current_results:
             messagebox.showwarning("No Results", "No test results to save. Run a test first.")
             return
+
+        # Generate timestamp once for both files
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         # Format results
         result_lines = []
         for server_name, result in self.current_results.items():
             result_lines.append(str(result))
 
-        # Save to file
-        success, filepath = self.storage.save_batch_results(result_lines)
+        # Save text file with timestamp
+        success, filepath = self.storage.save_batch_results(result_lines, timestamp)
 
-        if success:
-            messagebox.showinfo("Results Saved", f"Results saved to:\n{filepath}")
-            self._set_status(f"Results saved to file")
+        # Save graphs as PNG with same timestamp
+        png_success, png_filepath = self._save_graphs_as_png(timestamp)
+
+        if success and png_success:
+            messagebox.showinfo("Results Saved", f"Results saved to:\n{filepath}\n\nGraphs saved to:\n{png_filepath}")
+            self._set_status(f"Results and graphs saved")
+        elif success:
+            messagebox.showwarning("Partial Save", f"Results saved to:\n{filepath}\n\nFailed to save graphs")
+            self._set_status(f"Results saved (graphs failed)")
         else:
             messagebox.showerror("Error", "Failed to save results")
+
+    def _save_graphs_as_png(self, timestamp: str):
+        """Save all current graphs as a single PNG image.
+
+        Args:
+            timestamp: Timestamp string to use for filename
+        """
+        if not self.graph_panels:
+            return False, ""
+
+        try:
+            # Calculate grid layout (2 columns)
+            num_graphs = len(self.graph_panels)
+            cols = min(2, num_graphs)
+            rows = (num_graphs + cols - 1) // cols
+
+            # Create figure with subplots
+            fig = Figure(figsize=(12, 4 * rows), facecolor='white')
+
+            # Plot each graph
+            for idx, (server_name, graph_panel) in enumerate(self.graph_panels.items()):
+                ax = fig.add_subplot(rows, cols, idx + 1)
+
+                # Get data from graph panel
+                if not graph_panel.ping_numbers:
+                    continue
+
+                # Separate valid and failed pings
+                valid_pings = [(pn, lat) for pn, lat in zip(graph_panel.ping_numbers, graph_panel.latencies) if lat > 0]
+
+                if valid_pings:
+                    valid_ping_numbers, valid_latencies = zip(*valid_pings)
+
+                    # Plot connecting line
+                    ax.plot(valid_ping_numbers, valid_latencies,
+                           color=Colours.BORDER_MEDIUM, linewidth=1.5, alpha=0.3, zorder=1)
+
+                    # Plot individual coloured points
+                    for ping_num, latency in zip(valid_ping_numbers, valid_latencies):
+                        point_colour = Styles.get_status_colour(latency)
+                        ax.scatter([ping_num], [latency], color=point_colour, s=30, zorder=2)
+
+                # Add failed ping markers
+                failed_pings = [pn for pn, lat in zip(graph_panel.ping_numbers, graph_panel.latencies) if lat == 0]
+                if failed_pings:
+                    ax.scatter(failed_pings, [0] * len(failed_pings),
+                              color=Colours.STATUS_FAILED, marker='x', s=50, label='Failed', zorder=5)
+
+                # Styling
+                ax.set_facecolor(Colours.BG_SECONDARY)
+                ax.grid(True, linestyle='--', alpha=0.3, color=Colours.BORDER_MEDIUM)
+                ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL)
+                ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL)
+
+                # Set title with format "SERVER_NAME: IP | Mean: XXms"
+                result = self.current_results.get(server_name)
+                if result and result.mean is not None:
+                    title = f"{graph_panel.current_server} | Mean: {result.mean:.1f}ms"
+                else:
+                    title = graph_panel.current_server
+                ax.set_title(title, fontsize=Fonts.SIZE_TITLE)
+
+                # Set axis limits - use maximum of duration and actual data range
+                max_ping_num = max(graph_panel.ping_numbers) if graph_panel.ping_numbers else 10
+                x_limit = max(graph_panel.duration, max_ping_num) if graph_panel.duration > 0 else max_ping_num
+                ax.set_xlim(0, x_limit)
+                if valid_pings:
+                    max_lat = max(valid_latencies)
+                    ax.set_ylim(0, max_lat * 1.1)
+
+                # Add legend if there were failures
+                if failed_pings:
+                    ax.legend(loc='upper right', fontsize=Fonts.SIZE_SMALL)
+
+            # Adjust layout to prevent overlap
+            fig.tight_layout()
+
+            # Use the passed timestamp for filename
+            png_filepath = self.storage.results_dir / f"ping_graphs_{timestamp}.png"
+
+            # Save figure
+            fig.savefig(str(png_filepath), dpi=150, bbox_inches='tight')
+
+            # Clean up
+            plt.close(fig)
+
+            return True, str(png_filepath)
+
+        except Exception as e:
+            print(f"Error saving graphs: {e}")
+            return False, ""
 
     def _on_duration_changed(self):
         """Handle duration selection change."""

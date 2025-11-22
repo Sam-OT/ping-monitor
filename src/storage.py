@@ -160,17 +160,19 @@ class Storage:
         self.save_servers(sorted_servers)
         return sorted_servers
 
-    def save_batch_results(self, results: List[str]) -> tuple[bool, str]:
+    def save_batch_results(self, results: List[str], timestamp: str = None) -> tuple[bool, str]:
         """
         Save batch ping results to a timestamped file.
 
         Args:
             results: List of result strings (one per server)
+            timestamp: Optional timestamp string. If None, current time is used.
 
         Returns:
             Tuple of (success bool, file path)
         """
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        if timestamp is None:
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         filename = f"ping_results_{timestamp}.txt"
         filepath = self.results_dir / filename
 
