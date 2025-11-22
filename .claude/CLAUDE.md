@@ -108,16 +108,23 @@ ping-monitor/
 
 **Statistics Display**
 - Mean, Min, Max, Std Dev shown in large font
+- Formatting: Mean/Min/Max as integers (e.g., "45ms"), Std Dev with one decimal (e.g., "12.5ms")
 - Colour-coded by latency quality
 - Updates in real-time during test
 - Shows "--" when no data
 
+**Save Results**
+- "Save" button exports both TXT and PNG files with synchronized timestamps
+- TXT file: Tabular format with statistics (mean, min, max, std dev)
+- PNG file: Grid layout (2 columns) showing all graphs with color-coded data points
+- Graph titles include mean latency: "SERVER_NAME: IP | Mean: XXms"
+- Files saved to `results/` directory with timestamp format: `YYYY-MM-DD_HH-MM-SS`
+
 **Batch Mode**
 - Tests all servers sequentially
 - Shows progress in status bar
-- Saves to timestamped text file
-- Format: `ServerName: XX.XXms`
-- Opens file location when complete
+- Can be saved using "Save" button after completion
+- Format: ServerName with integer statistics
 
 ## Building & Running
 
@@ -223,7 +230,6 @@ uv run pyinstaller build.spec
 - **Solution**: Check IP address, network connectivity
 
 ## Future Enhancement Ideas
-- [ ] Export graphs as images
 - [ ] Historical data tracking over time
 - [ ] Alerts/notifications for high latency
 - [ ] Custom ping intervals (currently 1s fixed)
