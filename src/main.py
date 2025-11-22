@@ -39,7 +39,7 @@ class PingMonitorApp:
         self.selected_duration = 60  # Default: 1 minute
 
         # UI Components
-        self.server_buttons = {}
+        self.server_listbox = None
         self.stats_labels = {}
         self.graph_panel = None
 
@@ -73,43 +73,50 @@ class PingMonitorApp:
     def _build_server_section(self, parent):
         """Build the server selection and management section."""
         section_frame = tk.Frame(parent, bg=Colors.BG_PRIMARY)
-        section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
+        section_frame.pack(fill=tk.BOTH, expand=True, pady=(0, Spacing.PAD_MEDIUM))
 
-        # Header with Add/Remove buttons
-        header_frame = tk.Frame(section_frame, bg=Colors.BG_PRIMARY)
-        header_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_SMALL))
+        # Header
+        tk.Label(section_frame, text="Servers:", **Styles.get_heading_style()).pack(anchor=tk.W)
 
-        tk.Label(header_frame, text="Servers:", **Styles.get_heading_style()).pack(side=tk.LEFT)
+        # Container for listbox and buttons
+        list_container = tk.Frame(section_frame, bg=Colors.BG_PRIMARY)
+        list_container.pack(fill=tk.BOTH, expand=True, pady=Spacing.PAD_SMALL)
 
-        btn_add = tk.Button(header_frame, text="+ Add Server",
-                           command=self._add_server_dialog,
-                           **Styles.get_add_button_style())
-        btn_add.pack(side=tk.RIGHT, padx=Spacing.PAD_SMALL)
+        # Listbox with scrollbar
+        list_frame = tk.Frame(list_container, bg=Colors.BG_PRIMARY)
+        list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Scrollable server list
-        self.server_list_frame = tk.Frame(section_frame, bg=Colors.BG_SECONDARY,
-                                         relief=tk.SUNKEN, bd=1)
-        self.server_list_frame.pack(fill=tk.BOTH, expand=False)
+        scrollbar = tk.Scrollbar(list_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Canvas for scrolling
-        canvas = tk.Canvas(self.server_list_frame, bg=Colors.BG_SECONDARY,
-                          height=100, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(self.server_list_frame, orient=tk.HORIZONTAL,
-                                 command=canvas.xview)
-        self.scrollable_frame = tk.Frame(canvas, bg=Colors.BG_SECONDARY)
-
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        self.server_listbox = tk.Listbox(
+            list_frame,
+            yscrollcommand=scrollbar.set,
+            font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
+            height=8,
+            relief=tk.SUNKEN,
+            bd=2
         )
+        self.server_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.server_listbox.yview)
 
-        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        canvas.configure(xscrollcommand=scrollbar.set)
+        # Buttons
+        button_frame = tk.Frame(list_container, bg=Colors.BG_PRIMARY)
+        button_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(Spacing.PAD_SMALL, 0))
 
-        canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+        tk.Button(button_frame, text="Add",
+                 command=self._add_server_dialog,
+                 **Styles.get_button_style()).pack(pady=2)
 
-        # Populate server buttons
+        tk.Button(button_frame, text="Remove",
+                 command=self._remove_selected_server,
+                 **Styles.get_button_style()).pack(pady=2)
+
+        tk.Button(button_frame, text="Test",
+                 command=self._test_selected_server,
+                 **Styles.get_button_style()).pack(pady=2)
+
+        # Populate listbox
         self._refresh_server_list()
 
     def _build_duration_section(self, parent):
@@ -188,7 +195,7 @@ class PingMonitorApp:
 
         self.batch_button = tk.Button(section_frame, text="Run All Servers",
                                      command=self._run_batch_test,
-                                     **Styles.get_primary_button_style())
+                                     **Styles.get_button_style())
         self.batch_button.pack()
 
     def _build_status_bar(self, parent):
@@ -200,31 +207,10 @@ class PingMonitorApp:
         self.status_bar.pack(fill=tk.X, side=tk.BOTTOM)
 
     def _refresh_server_list(self):
-        """Refresh the server button list."""
-        # Clear existing buttons
-        for widget in self.scrollable_frame.winfo_children():
-            widget.destroy()
-        self.server_buttons.clear()
-
-        # Create buttons for each server
-        for i, server in enumerate(self.servers):
-            # Container for server button and remove button
-            btn_container = tk.Frame(self.scrollable_frame, bg=Colors.BG_SECONDARY)
-            btn_container.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL, pady=Spacing.PAD_MEDIUM)
-
-            # Server button
-            btn = tk.Button(btn_container, text=server.name,
-                           command=lambda s=server: self._start_ping_test(s),
-                           **Styles.get_server_button_style())
-            btn.pack(side=tk.LEFT)
-
-            # Remove button (small X)
-            remove_btn = tk.Button(btn_container, text="×",
-                                  command=lambda s=server: self._remove_server(s.name),
-                                  **Styles.get_remove_button_style())
-            remove_btn.pack(side=tk.LEFT, padx=(2, 0))
-
-            self.server_buttons[server.name] = btn
+        """Refresh the server listbox."""
+        self.server_listbox.delete(0, tk.END)
+        for server in self.servers:
+            self.server_listbox.insert(tk.END, f"{server.name} ({server.ip})")
 
     def _add_server_dialog(self):
         """Show dialog to add a new server."""
@@ -262,7 +248,7 @@ class PingMonitorApp:
 
         # Status label
         status_label = tk.Label(form_frame, text="", bg=Colors.BG_PRIMARY,
-                               fg=Colors.ACCENT_RED,
+                               fg=Colors.STATUS_POOR,
                                font=(Fonts.get_default_family(), Fonts.SIZE_SMALL))
         status_label.grid(row=2, column=0, columnspan=2, pady=Spacing.PAD_SMALL)
 
@@ -279,7 +265,7 @@ class PingMonitorApp:
             dialog.update()
 
             if not self.ping_service.validate_ip(ip):
-                status_label.config(text="Invalid or unreachable IP address", fg=Colors.ACCENT_RED)
+                status_label.config(text="Invalid or unreachable IP address", fg=Colors.STATUS_POOR)
                 return
 
             # Add server
@@ -290,7 +276,7 @@ class PingMonitorApp:
                 dialog.destroy()
                 self._set_status(f"Added server: {name}")
             else:
-                status_label.config(text=error, fg=Colors.ACCENT_RED)
+                status_label.config(text=error, fg=Colors.STATUS_POOR)
 
         def on_cancel():
             dialog.destroy()
@@ -300,14 +286,10 @@ class PingMonitorApp:
         btn_frame.grid(row=3, column=0, columnspan=2, pady=Spacing.PAD_MEDIUM)
 
         tk.Button(btn_frame, text="Add", command=on_add,
-                 bg=Colors.BUTTON_SUCCESS, fg="white",
-                 font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
-                 cursor="hand2", width=10).pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
+                 **Styles.get_button_style()).pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
 
         tk.Button(btn_frame, text="Cancel", command=on_cancel,
-                 bg=Colors.BUTTON_DANGER, fg="white",
-                 font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
-                 cursor="hand2", width=10).pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
+                 **Styles.get_button_style()).pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
 
         # Bind Enter key
         dialog.bind('<Return>', lambda e: on_add())
@@ -323,6 +305,28 @@ class PingMonitorApp:
                 self._set_status(f"Removed server: {name}")
             else:
                 messagebox.showerror("Error", "Failed to remove server")
+
+    def _remove_selected_server(self):
+        """Remove the currently selected server."""
+        selection = self.server_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select a server to remove")
+            return
+
+        index = selection[0]
+        server = self.servers[index]
+        self._remove_server(server.name)
+
+    def _test_selected_server(self):
+        """Test the currently selected server."""
+        selection = self.server_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select a server to test")
+            return
+
+        index = selection[0]
+        server = self.servers[index]
+        self._start_ping_test(server)
 
     def _on_duration_changed(self):
         """Handle duration selection change."""

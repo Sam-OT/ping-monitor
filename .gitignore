@@ -37,6 +37,9 @@ wheels/
 data/
 results/
 
+# Claude Code settings
+.claude/settings.local.json
+
 # IDEs
 .vscode/
 .idea/

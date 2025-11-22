@@ -7,41 +7,27 @@ import platform
 class Colors:
     """Color palette for the application."""
 
-    # Background colors
-    BG_PRIMARY = "#FFFFFF"
-    BG_SECONDARY = "#F5F5F5"
-    BG_TERTIARY = "#E8E8E8"
-
-    # Accent colors
-    ACCENT_BLUE = "#4A90E2"
-    ACCENT_GREEN = "#5CB85C"
-    ACCENT_ORANGE = "#F0AD4E"
-    ACCENT_RED = "#D9534F"
+    # Background colors - standard Windows gray
+    BG_PRIMARY = "#F0F0F0"  # Standard Windows gray
+    BG_SECONDARY = "#E0E0E0"
+    BG_TERTIARY = "#D4D4D4"
 
     # Text colors
-    TEXT_PRIMARY = "#333333"
-    TEXT_SECONDARY = "#666666"
-    TEXT_LIGHT = "#999999"
+    TEXT_PRIMARY = "black"
+    TEXT_SECONDARY = "#000000"
+    TEXT_LIGHT = "#666666"
 
-    # Status colors (for ping results)
-    STATUS_EXCELLENT = "#27AE60"  # Green - < 50ms
-    STATUS_GOOD = "#5CB85C"       # Light green - 50-100ms
-    STATUS_FAIR = "#F39C12"       # Orange - 100-200ms
-    STATUS_POOR = "#E74C3C"       # Red - > 200ms
-    STATUS_FAILED = "#95A5A6"     # Gray - failed ping
-
-    # Button colors
-    BUTTON_PRIMARY = "#4A90E2"
-    BUTTON_PRIMARY_HOVER = "#357ABD"
-    BUTTON_SUCCESS = "#5CB85C"
-    BUTTON_SUCCESS_HOVER = "#449D44"
-    BUTTON_DANGER = "#D9534F"
-    BUTTON_DANGER_HOVER = "#C9302C"
+    # Status colors (for ping results) - more muted
+    STATUS_EXCELLENT = "#008000"  # Dark green - < 50ms
+    STATUS_GOOD = "#4C9900"       # Green - 50-100ms
+    STATUS_FAIR = "#CC6600"       # Orange - 100-200ms
+    STATUS_POOR = "#CC0000"       # Dark red - > 200ms
+    STATUS_FAILED = "#666666"     # Gray - failed ping
 
     # Border colors
-    BORDER_LIGHT = "#DDDDDD"
-    BORDER_MEDIUM = "#CCCCCC"
-    BORDER_DARK = "#999999"
+    BORDER_LIGHT = "#CCCCCC"
+    BORDER_MEDIUM = "#999999"
+    BORDER_DARK = "#666666"
 
 
 class Fonts:
@@ -52,11 +38,11 @@ class Fonts:
         """Get the default font family for the current platform."""
         system = platform.system()
         if system == "Windows":
-            return "Segoe UI"
+            return "MS Sans Serif"  # Classic Windows font
         elif system == "Darwin":  # macOS
-            return "SF Pro Text"
+            return "Helvetica"
         else:  # Linux
-            return "Ubuntu"
+            return "DejaVu Sans"
 
     @staticmethod
     def get_monospace_family() -> str:
@@ -70,11 +56,11 @@ class Fonts:
             return "Monospace"
 
     # Font sizes
-    SIZE_TITLE = 16
-    SIZE_HEADING = 14
-    SIZE_NORMAL = 11
-    SIZE_SMALL = 9
-    SIZE_LARGE_STAT = 24
+    SIZE_TITLE = 12
+    SIZE_HEADING = 10
+    SIZE_NORMAL = 9
+    SIZE_SMALL = 8
+    SIZE_LARGE_STAT = 16
 
 
 class Spacing:
@@ -103,61 +89,13 @@ class Styles:
     """Pre-configured style dictionaries for common widgets."""
 
     @staticmethod
-    def get_server_button_style() -> dict:
-        """Style for server selection buttons."""
+    def get_button_style() -> dict:
+        """Style for standard buttons."""
         return {
             "font": (Fonts.get_default_family(), Fonts.SIZE_NORMAL),
-            "bg": Colors.BUTTON_PRIMARY,
-            "fg": "white",
-            "activebackground": Colors.BUTTON_PRIMARY_HOVER,
-            "activeforeground": "white",
-            "relief": "flat",
-            "cursor": "hand2",
-            "height": 2,
-            "width": 15
-        }
-
-    @staticmethod
-    def get_add_button_style() -> dict:
-        """Style for add server button."""
-        return {
-            "font": (Fonts.get_default_family(), Fonts.SIZE_NORMAL, "bold"),
-            "bg": Colors.BUTTON_SUCCESS,
-            "fg": "white",
-            "activebackground": Colors.BUTTON_SUCCESS_HOVER,
-            "activeforeground": "white",
-            "relief": "flat",
-            "cursor": "hand2",
-            "width": 10
-        }
-
-    @staticmethod
-    def get_remove_button_style() -> dict:
-        """Style for remove server buttons."""
-        return {
-            "font": (Fonts.get_default_family(), Fonts.SIZE_SMALL, "bold"),
-            "bg": Colors.BUTTON_DANGER,
-            "fg": "white",
-            "activebackground": Colors.BUTTON_DANGER_HOVER,
-            "activeforeground": "white",
-            "relief": "flat",
-            "cursor": "hand2",
-            "width": 2
-        }
-
-    @staticmethod
-    def get_primary_button_style() -> dict:
-        """Style for primary action buttons."""
-        return {
-            "font": (Fonts.get_default_family(), Fonts.SIZE_NORMAL, "bold"),
-            "bg": Colors.BUTTON_PRIMARY,
-            "fg": "white",
-            "activebackground": Colors.BUTTON_PRIMARY_HOVER,
-            "activeforeground": "white",
-            "relief": "flat",
-            "cursor": "hand2",
-            "height": 2,
-            "width": 20
+            "relief": "raised",
+            "bd": 2,
+            "width": 12
         }
 
     @staticmethod
@@ -166,15 +104,6 @@ class Styles:
         return {
             "font": (Fonts.get_default_family(), Fonts.SIZE_NORMAL),
             "bg": Colors.BG_PRIMARY,
-            "fg": Colors.TEXT_PRIMARY
-        }
-
-    @staticmethod
-    def get_stat_label_style() -> dict:
-        """Style for statistics display labels."""
-        return {
-            "font": (Fonts.get_default_family(), Fonts.SIZE_LARGE_STAT, "bold"),
-            "bg": Colors.BG_SECONDARY,
             "fg": Colors.TEXT_PRIMARY
         }
 

@@ -5,6 +5,7 @@ import subprocess
 import platform
 import re
 import statistics
+import time
 from typing import List, Dict, Callable, Optional
 
 
@@ -116,17 +117,27 @@ class PingService:
             PingResult object with statistics
         """
         latencies = []
+        start_time = time.time()
 
-        # Ping approximately once per second
-        for i in range(duration_seconds):
+        # Ping once per second for the specified duration
+        ping_count = 0
+        while time.time() - start_time < duration_seconds:
             latency = self.ping_once(ip)
 
             if latency is not None:
                 latencies.append(latency)
 
+            ping_count += 1
+
             # Call progress callback if provided
             if progress_callback:
-                progress_callback(latency, i + 1, duration_seconds)
+                progress_callback(latency, ping_count, duration_seconds)
+
+            # Wait for the rest of the second
+            elapsed = time.time() - start_time
+            next_ping_time = ping_count  # Should ping at 1s, 2s, 3s, etc.
+            if next_ping_time > elapsed:
+                time.sleep(next_ping_time - elapsed)
 
         return PingResult(server_name, ip, latencies)
 
