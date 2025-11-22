@@ -561,8 +561,8 @@ class PingMonitorApp:
         if not graph_panel:
             return
 
-        # Start graph
-        graph_panel.start_new_test(server.name, server.ip)
+        # Start graph with duration
+        graph_panel.start_new_test(server.name, server.ip, self.selected_duration)
 
         self._set_status(f"Testing {server.name}...")
 

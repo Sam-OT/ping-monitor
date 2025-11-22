@@ -29,6 +29,11 @@ class GraphPanel:
         self.latencies = []
         self.current_server = ""
 
+        # Incremental update tracking
+        self.line = None  # Line2D object for connecting line
+        self.current_ylim_max = 100  # Track current y-axis maximum
+        self.duration = 0  # Test duration in seconds
+
         self._setup_graph()
 
     def _setup_graph(self):
@@ -79,28 +84,43 @@ class GraphPanel:
         for spine in self.ax.spines.values():
             spine.set_edgecolor(Colours.BORDER_MEDIUM)
 
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
-    def start_new_test(self, server_name: str, server_ip: str = ""):
+    def start_new_test(self, server_name: str, server_ip: str = "", duration: int = 60):
         """
         Start a new ping test, clearing previous data.
 
         Args:
             server_name: Name of the server being tested
             server_ip: IP address of the server
+            duration: Test duration in seconds
         """
         # Clear data first
         self.ping_numbers = []
         self.latencies = []
+        self.duration = duration
 
         # Title format: "Server Name: IP" - store for later use
         title = f'{server_name}: {server_ip}' if server_ip else server_name
         self.current_server = title  # Store AFTER clearing data
 
-        # Clear and setup the axes
+        # Clear and setup the axes (only once at start)
         self.ax.clear()
         self.ax.set_facecolor(Colours.BG_SECONDARY)
         self.ax.grid(True, linestyle='--', alpha=0.3, color=Colours.BORDER_MEDIUM)
+
+        # Set FIXED x-axis range based on duration
+        self.ax.set_xlim(0, duration)
+
+        # Set initial y-axis range
+        self.current_ylim_max = 100
+        self.ax.set_ylim(0, self.current_ylim_max)
+
+        # Create persistent Line2D for connecting line
+        self.line, = self.ax.plot([], [], color=Colours.BORDER_MEDIUM,
+                                   linewidth=1.5, alpha=0.3, zorder=1)
+
+        # Labels and styling
         self.ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
         self.ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL,
@@ -116,7 +136,7 @@ class GraphPanel:
                          fontfamily=Fonts.get_default_family(),
                          color=Colours.TEXT_PRIMARY,
                          pad=10)
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
     def add_data_point(self, ping_number: int, latency: Optional[float]):
         """
@@ -133,70 +153,60 @@ class GraphPanel:
             latency = 0  # Will show as 0 on graph
 
         self.latencies.append(latency)
-        self.update_graph()
 
-    def update_graph(self):
-        """Redraw the graph with current data."""
+        # Use incremental update instead of full redraw
+        self._update_incremental()
+
+    def _update_incremental(self):
+        """Update graph incrementally without clearing."""
         if not self.ping_numbers:
             return
 
-        self.ax.clear()
-
-        # Filter out failed pings (0 values) for plotting
+        # Separate valid pings from failed pings
         valid_pings = [(pn, lat) for pn, lat in zip(self.ping_numbers, self.latencies) if lat > 0]
 
         if valid_pings:
             valid_ping_numbers, valid_latencies = zip(*valid_pings)
 
-            # Plot line in gray as background
-            self.ax.plot(valid_ping_numbers, valid_latencies,
-                        color=Colours.BORDER_MEDIUM, linewidth=1.5, alpha=0.3, zorder=1)
+            # Update the Line2D data (efficient, no redraw)
+            self.line.set_data(valid_ping_numbers, valid_latencies)
 
-            # Colour each point based on its individual latency
-            for ping_num, latency in zip(valid_ping_numbers, valid_latencies):
-                point_colour = Styles.get_status_colour(latency)
-                self.ax.scatter([ping_num], [latency], color=point_colour, s=30, zorder=2)
+            # Add only the LATEST scatter point
+            latest_ping = self.ping_numbers[-1]
+            latest_latency = self.latencies[-1]
 
-            # Add failed ping markers if any
-            failed_pings = [pn for pn, lat in zip(self.ping_numbers, self.latencies) if lat == 0]
-            if failed_pings:
-                # Show failed pings at y=0
-                self.ax.scatter(failed_pings, [0] * len(failed_pings),
+            if latest_latency > 0:
+                point_colour = Styles.get_status_colour(latest_latency)
+                self.ax.scatter([latest_ping], [latest_latency],
+                              color=point_colour, s=30, zorder=2)
+            else:
+                # Add failed ping marker
+                self.ax.scatter([latest_ping], [0],
                               color=Colours.STATUS_FAILED, marker='x',
-                              s=50, label='Failed', zorder=5)
+                              s=50, zorder=5)
 
-        # Style the plot
-        self.ax.set_facecolor(Colours.BG_SECONDARY)
-        self.ax.grid(True, linestyle='--', alpha=0.3, color=Colours.BORDER_MEDIUM)  # matplotlib uses 'color' not 'colour'
-        self.ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL,
-                          fontfamily=Fonts.get_default_family())
-        self.ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL,
-                          fontfamily=Fonts.get_default_family())
+            # Check if y-axis needs expansion
+            max_current = max(valid_latencies)
+            if max_current > self.current_ylim_max:
+                self.current_ylim_max = max_current * 1.1
+                self.ax.set_ylim(0, self.current_ylim_max)
+        else:
+            # All pings failed so far - add failed marker
+            latest_ping = self.ping_numbers[-1]
+            self.ax.scatter([latest_ping], [0],
+                          color=Colours.STATUS_FAILED, marker='x',
+                          s=50, zorder=5)
 
-        # Re-set the title (was cleared with ax.clear())
-        if self.current_server:
-            self.ax.set_title(self.current_server,
-                             fontsize=Fonts.SIZE_TITLE,
-                             fontfamily=Fonts.get_default_family(),
-                             color=Colours.TEXT_PRIMARY,
-                             pad=10)
-
-        # Set spine colours
-        for spine in self.ax.spines.values():
-            spine.set_edgecolor(Colours.BORDER_MEDIUM)
-
-        # Add legend if there are failed pings
-        if any(lat == 0 for lat in self.latencies):
-            self.ax.legend(loc='upper right', fontsize=Fonts.SIZE_SMALL)
-
-        # Set y-axis to start at 0
-        if valid_pings:
-            max_lat = max(valid_latencies)
-            self.ax.set_ylim(0, max_lat * 1.1)  # 10% padding on top
-
-        self.canvas.draw()
+        # Only redraw (non-blocking)
+        self.canvas.draw_idle()
 
     def finalize_test(self):
         """Finalize the graph after test completion."""
-        # Title is already set correctly in start_new_test, no need to change it
-        pass
+        # Add legend if there were any failed pings
+        if any(lat == 0 for lat in self.latencies):
+            # Check if legend already exists, if not add it
+            if not self.ax.get_legend():
+                self.ax.scatter([], [], color=Colours.STATUS_FAILED,
+                              marker='x', s=50, label='Failed')
+                self.ax.legend(loc='upper right', fontsize=Fonts.SIZE_SMALL)
+                self.canvas.draw_idle()
