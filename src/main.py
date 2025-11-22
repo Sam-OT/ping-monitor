@@ -608,7 +608,7 @@ class PingMonitorApp:
                 # Set title with format "SERVER_NAME: IP | Mean: XXms"
                 result = self.current_results.get(server_name)
                 if result and result.mean is not None:
-                    title = f"{graph_panel.current_server} | Mean: {result.mean:.1f}ms"
+                    title = f"{graph_panel.current_server} | Mean: {result.mean:.0f}ms"
                 else:
                     title = graph_panel.current_server
                 ax.set_title(title, fontsize=Fonts.SIZE_TITLE)
