@@ -6,6 +6,7 @@ import platform
 import re
 import statistics
 import time
+import threading
 from typing import List, Dict, Callable, Optional
 
 
@@ -65,11 +66,13 @@ class PingService:
             # Platform-specific ping command
             if self.system == "Windows":
                 # Windows: ping -n 1 -w 1000 IP
+                # CREATE_NO_WINDOW prevents console window from appearing
                 result = subprocess.run(
                     ["ping", "-n", "1", "-w", "1000", ip],
                     capture_output=True,
                     text=True,
-                    timeout=2
+                    timeout=2,
+                    creationflags=subprocess.CREATE_NO_WINDOW
                 )
                 # Parse output: "time=XXms" or "time<1ms"
                 match = re.search(r'time[=<](\d+)ms', result.stdout, re.IGNORECASE)
@@ -102,7 +105,8 @@ class PingService:
         server_name: str,
         ip: str,
         duration_seconds: int,
-        progress_callback: Optional[Callable[[float, int, int], None]] = None
+        progress_callback: Optional[Callable[[float, int, int], None]] = None,
+        cancel_event: Optional[threading.Event] = None
     ) -> PingResult:
         """
         Ping an IP address continuously for a specified duration.
@@ -112,6 +116,7 @@ class PingService:
             ip: IP address to ping
             duration_seconds: How long to ping (in seconds)
             progress_callback: Optional callback(latency, current, total) called after each ping
+            cancel_event: Optional threading.Event to signal cancellation
 
         Returns:
             PingResult object with statistics
@@ -122,6 +127,9 @@ class PingService:
         # Ping once per second for the specified duration
         ping_count = 0
         while time.time() - start_time < duration_seconds:
+            # Check if cancellation was requested
+            if cancel_event and cancel_event.is_set():
+                break
             latency = self.ping_once(ip)
 
             if latency is not None:

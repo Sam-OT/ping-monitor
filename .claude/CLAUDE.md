@@ -9,7 +9,7 @@ A modern GUI application for monitoring network latency to multiple servers. Bui
 - **Note**: Paths shown are Windows paths (e.g., `d:\Users\...`) but development is done in WSL environment
 
 ## Key Requirements (from user)
-- **Visual appeal**: Modern, clean UI with good spacing and colors
+- **Visual appeal**: Modern, clean UI with good spacing and colours
 - **User-friendly**: Easy to add/remove/select servers with custom names
 - **Default duration**: 1 minute (with options for 10s, 30s, 1min, 5min)
 - **Statistics**: Display mean, min, max, and standard deviation
@@ -26,7 +26,7 @@ ping-monitor/
 │   ├── ping_service.py     # Cross-platform ping logic & statistics
 │   ├── storage.py          # JSON-based server configuration
 │   ├── graph_panel.py      # Matplotlib graph integration
-│   └── styles.py           # UI styling constants (colors, fonts, spacing)
+│   └── styles.py           # UI styling constants (colours, fonts, spacing)
 ├── data/                   # Server configs (auto-created, gitignored)
 ├── results/                # Batch test outputs (auto-created, gitignored)
 ├── pyproject.toml          # Modern Python project config
@@ -66,8 +66,8 @@ ping-monitor/
 
 **styles.py**
 - Centralized styling constants for consistent UI
-- Color scheme: Light theme with blue accents
-- Status colors: Green (<50ms), Yellow (50-100ms), Orange (100-200ms), Red (>200ms)
+- Colour scheme: Light theme with blue accents
+- Status colours: Green (<50ms), Yellow (50-100ms), Orange (100-200ms), Red (>200ms)
 - Platform-specific fonts: Segoe UI (Windows), SF Pro (Mac), Ubuntu (Linux)
 - All spacing/padding constants defined here
 
@@ -75,7 +75,7 @@ ping-monitor/
 - Embeds matplotlib Figure in tkinter Canvas
 - Real-time graph updates during ping tests
 - X-axis: Ping number, Y-axis: Latency (ms)
-- Color-coded lines based on average latency
+- Colour-coded lines based on average latency
 - Shows failed pings as X markers at y=0
 - Grid lines and clean styling
 
@@ -83,7 +83,7 @@ ping-monitor/
 - Main application window (900x700 default, 800x600 minimum)
 - Server management: scrollable horizontal list with add/remove
 - Duration selector: Radio buttons for 10s/30s/1min/5min
-- Statistics panel: Large numbers with color coding
+- Statistics panel: Large numbers with colour coding
 - Graph area: Embedded matplotlib panel
 - Batch test button: Runs all servers sequentially
 - Status bar: Shows current operation
@@ -108,7 +108,7 @@ ping-monitor/
 
 **Statistics Display**
 - Mean, Min, Max, Std Dev shown in large font
-- Color-coded by latency quality
+- Colour-coded by latency quality
 - Updates in real-time during test
 - Shows "--" when no data
 
@@ -255,7 +255,7 @@ dev = [
 ## Design Philosophy
 - **Simplicity**: Single-purpose, does one thing well
 - **User-friendly**: No technical knowledge required
-- **Visual**: Clean, modern UI with color coding
+- **Visual**: Clean, modern UI with colour coding
 - **Fast**: uv for quick dependency management
 - **Portable**: Standalone .exe, no dependencies
 - **Cross-platform code**: Works on Windows/Linux/Mac (source)

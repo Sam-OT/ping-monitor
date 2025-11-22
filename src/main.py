@@ -8,7 +8,7 @@ from typing import Optional
 from ping_service import PingService, PingResult
 from storage import Storage, Server
 from graph_panel import GraphPanel
-from styles import Colors, Fonts, Spacing, Styles
+from styles import Colours, Fonts, Spacing, Styles
 
 
 class PingMonitorApp:
@@ -25,7 +25,7 @@ class PingMonitorApp:
         self.root.title("Ping Monitor")
         self.root.geometry(f"{Spacing.WINDOW_DEFAULT_WIDTH}x{Spacing.WINDOW_DEFAULT_HEIGHT}")
         self.root.minsize(Spacing.WINDOW_MIN_WIDTH, Spacing.WINDOW_MIN_HEIGHT)
-        self.root.configure(bg=Colors.BG_PRIMARY)
+        self.root.configure(bg=Colours.BG_PRIMARY)
 
         # Initialize services
         self.ping_service = PingService()
@@ -39,12 +39,14 @@ class PingMonitorApp:
         self.selected_duration = 60  # Default: 1 minute
         self.current_results = {}  # Store results: {server_name: PingResult}
         self.active_tests = 0  # Count of running tests
+        self.cancel_event = threading.Event()  # Event to signal test cancellation
 
         # UI Components
         self.server_listbox = None
         self.stats_labels = {}
         self.graph_panels = {}  # Multiple graph panels for tiling
         self.graphs_container = None
+        self.cancel_button = None
 
         # Build UI
         self._build_ui()
@@ -52,7 +54,7 @@ class PingMonitorApp:
     def _build_ui(self):
         """Build the complete user interface."""
         # Main container with padding
-        main_frame = tk.Frame(self.root, bg=Colors.BG_PRIMARY)
+        main_frame = tk.Frame(self.root, bg=Colours.BG_PRIMARY)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=Spacing.PAD_LARGE, pady=Spacing.PAD_LARGE)
 
         # Top section: Server management
@@ -75,18 +77,18 @@ class PingMonitorApp:
 
     def _build_server_section(self, parent):
         """Build the server selection and management section."""
-        section_frame = tk.Frame(parent, bg=Colors.BG_PRIMARY)
+        section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
         section_frame.pack(fill=tk.BOTH, expand=True, pady=(0, Spacing.PAD_MEDIUM))
 
         # Header
         tk.Label(section_frame, text="Servers:", **Styles.get_heading_style()).pack(anchor=tk.W)
 
         # Container for listbox and buttons
-        list_container = tk.Frame(section_frame, bg=Colors.BG_PRIMARY)
+        list_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
         list_container.pack(fill=tk.BOTH, expand=True, pady=Spacing.PAD_SMALL)
 
         # Listbox with scrollbar
-        list_frame = tk.Frame(list_container, bg=Colors.BG_PRIMARY)
+        list_frame = tk.Frame(list_container, bg=Colours.BG_PRIMARY)
         list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         scrollbar = tk.Scrollbar(list_frame)
@@ -105,7 +107,7 @@ class PingMonitorApp:
         scrollbar.config(command=self.server_listbox.yview)
 
         # Buttons
-        button_frame = tk.Frame(list_container, bg=Colors.BG_PRIMARY)
+        button_frame = tk.Frame(list_container, bg=Colours.BG_PRIMARY)
         button_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(Spacing.PAD_SMALL, 0))
 
         tk.Button(button_frame, text="Add",
@@ -129,7 +131,7 @@ class PingMonitorApp:
 
     def _build_duration_section(self, parent):
         """Build the duration selection section."""
-        section_frame = tk.Frame(parent, bg=Colors.BG_PRIMARY)
+        section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
         section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
 
         tk.Label(section_frame, text="Test Duration:",
@@ -147,24 +149,24 @@ class PingMonitorApp:
 
         for text, value in durations:
             rb = tk.Radiobutton(section_frame, text=text, variable=self.duration_var,
-                               value=value, bg=Colors.BG_PRIMARY, fg=Colors.TEXT_PRIMARY,
+                               value=value, bg=Colours.BG_PRIMARY, fg=Colours.TEXT_PRIMARY,
                                font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
-                               selectcolor=Colors.BG_SECONDARY,
-                               activebackground=Colors.BG_PRIMARY,
+                               selectcolor=Colours.BG_SECONDARY,
+                               activebackground=Colours.BG_PRIMARY,
                                cursor="hand2",
                                command=self._on_duration_changed)
             rb.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
 
     def _build_stats_section(self, parent):
         """Build the statistics display section."""
-        section_frame = tk.Frame(parent, bg=Colors.BG_SECONDARY, relief=tk.RIDGE, bd=2)
+        section_frame = tk.Frame(parent, bg=Colours.BG_SECONDARY, relief=tk.RIDGE, bd=2)
         section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
 
         tk.Label(section_frame, text="Statistics:", **Styles.get_heading_style()).pack(
             anchor=tk.W, padx=Spacing.PAD_MEDIUM, pady=(Spacing.PAD_SMALL, 0))
 
         # Grid for statistics
-        stats_grid = tk.Frame(section_frame, bg=Colors.BG_SECONDARY)
+        stats_grid = tk.Frame(section_frame, bg=Colours.BG_SECONDARY)
         stats_grid.pack(fill=tk.X, padx=Spacing.PAD_LARGE, pady=Spacing.PAD_MEDIUM)
 
         # Create stat labels
@@ -179,39 +181,49 @@ class PingMonitorApp:
             # Label
             tk.Label(stats_grid, text=label_text,
                     font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
-                    bg=Colors.BG_SECONDARY, fg=Colors.TEXT_SECONDARY).grid(
+                    bg=Colours.BG_SECONDARY, fg=Colours.TEXT_SECONDARY).grid(
                 row=0, column=col*2, sticky=tk.W, padx=(0, Spacing.PAD_SMALL))
 
             # Value
             value_label = tk.Label(stats_grid, text="--",
                                   font=(Fonts.get_default_family(), Fonts.SIZE_LARGE_STAT, "bold"),
-                                  bg=Colors.BG_SECONDARY, fg=Colors.TEXT_PRIMARY)
+                                  bg=Colours.BG_SECONDARY, fg=Colours.TEXT_PRIMARY)
             value_label.grid(row=0, column=col*2+1, sticky=tk.W, padx=(0, Spacing.PAD_LARGE))
             self.stats_labels[key] = value_label
 
     def _build_graph_section(self, parent):
         """Build the graph display section."""
-        section_frame = tk.Frame(parent, bg=Colors.BG_PRIMARY, relief=tk.RIDGE, bd=2)
+        section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY, relief=tk.RIDGE, bd=2)
         section_frame.pack(fill=tk.BOTH, expand=True, pady=(0, Spacing.PAD_MEDIUM))
 
         # Container for multiple graph panels (tiled layout)
-        self.graphs_container = tk.Frame(section_frame, bg=Colors.BG_PRIMARY)
+        self.graphs_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
         self.graphs_container.pack(fill=tk.BOTH, expand=True)
 
     def _build_batch_section(self, parent):
         """Build the batch test section."""
-        section_frame = tk.Frame(parent, bg=Colors.BG_PRIMARY)
+        section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
         section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_SMALL))
 
-        self.batch_button = tk.Button(section_frame, text="Run All Servers",
+        # Container for batch and cancel buttons
+        button_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
+        button_container.pack()
+
+        self.batch_button = tk.Button(button_container, text="Run All Servers",
                                      command=self._run_batch_test,
                                      **Styles.get_button_style())
-        self.batch_button.pack()
+        self.batch_button.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
+
+        self.cancel_button = tk.Button(button_container, text="Cancel Test",
+                                      command=self._cancel_test,
+                                      **Styles.get_button_style())
+        self.cancel_button.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
+        self.cancel_button.pack_forget()  # Hide initially
 
     def _build_status_bar(self, parent):
         """Build the status bar at the bottom."""
-        self.status_bar = tk.Label(parent, text="Ready", bg=Colors.BG_TERTIARY,
-                                  fg=Colors.TEXT_SECONDARY, anchor=tk.W,
+        self.status_bar = tk.Label(parent, text="Ready", bg=Colours.BG_TERTIARY,
+                                  fg=Colours.TEXT_SECONDARY, anchor=tk.W,
                                   font=(Fonts.get_default_family(), Fonts.SIZE_SMALL),
                                   relief=tk.SUNKEN, bd=1)
         self.status_bar.pack(fill=tk.X, side=tk.BOTTOM)
@@ -227,7 +239,7 @@ class PingMonitorApp:
         dialog = tk.Toplevel(self.root)
         dialog.title("Add Server")
         dialog.geometry("400x200")
-        dialog.configure(bg=Colors.BG_PRIMARY)
+        dialog.configure(bg=Colours.BG_PRIMARY)
         dialog.transient(self.root)
         dialog.grab_set()
 
@@ -238,7 +250,7 @@ class PingMonitorApp:
         dialog.geometry(f"+{x}+{y}")
 
         # Form frame
-        form_frame = tk.Frame(dialog, bg=Colors.BG_PRIMARY)
+        form_frame = tk.Frame(dialog, bg=Colours.BG_PRIMARY)
         form_frame.pack(expand=True, padx=Spacing.PAD_LARGE, pady=Spacing.PAD_LARGE)
 
         # Server name
@@ -257,8 +269,8 @@ class PingMonitorApp:
         ip_entry.grid(row=1, column=1, pady=Spacing.PAD_SMALL)
 
         # Status label
-        status_label = tk.Label(form_frame, text="", bg=Colors.BG_PRIMARY,
-                               fg=Colors.STATUS_POOR,
+        status_label = tk.Label(form_frame, text="", bg=Colours.BG_PRIMARY,
+                               fg=Colours.STATUS_POOR,
                                font=(Fonts.get_default_family(), Fonts.SIZE_SMALL))
         status_label.grid(row=2, column=0, columnspan=2, pady=Spacing.PAD_SMALL)
 
@@ -271,11 +283,11 @@ class PingMonitorApp:
                 return
 
             # Validate IP by pinging
-            status_label.config(text="Validating IP address...", fg=Colors.TEXT_SECONDARY)
+            status_label.config(text="Validating IP address...", fg=Colours.TEXT_SECONDARY)
             dialog.update()
 
             if not self.ping_service.validate_ip(ip):
-                status_label.config(text="Invalid or unreachable IP address", fg=Colors.STATUS_POOR)
+                status_label.config(text="Invalid or unreachable IP address", fg=Colours.STATUS_POOR)
                 return
 
             # Add server
@@ -286,13 +298,13 @@ class PingMonitorApp:
                 dialog.destroy()
                 self._set_status(f"Added server: {name}")
             else:
-                status_label.config(text=error, fg=Colors.STATUS_POOR)
+                status_label.config(text=error, fg=Colours.STATUS_POOR)
 
         def on_cancel():
             dialog.destroy()
 
         # Buttons
-        btn_frame = tk.Frame(form_frame, bg=Colors.BG_PRIMARY)
+        btn_frame = tk.Frame(form_frame, bg=Colours.BG_PRIMARY)
         btn_frame.grid(row=3, column=0, columnspan=2, pady=Spacing.PAD_MEDIUM)
 
         tk.Button(btn_frame, text="Add", command=on_add,
@@ -358,7 +370,7 @@ class PingMonitorApp:
             row = idx // cols
             col = idx % cols
 
-            graph_frame = tk.Frame(self.graphs_container, bg=Colors.BG_PRIMARY,
+            graph_frame = tk.Frame(self.graphs_container, bg=Colours.BG_PRIMARY,
                                   relief=tk.RIDGE, bd=1)
             graph_frame.grid(row=row, column=col, sticky="nsew", padx=2, pady=2)
 
@@ -373,9 +385,17 @@ class PingMonitorApp:
         # Start all tests simultaneously
         self.current_test_running = True
         self.active_tests = len(selected_servers)
+        self.cancel_event.clear()  # Clear any previous cancel signal
+        self.cancel_button.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)  # Show cancel button
 
         for server in selected_servers:
             self._start_ping_test(server)
+
+    def _cancel_test(self):
+        """Cancel the currently running test."""
+        self.cancel_event.set()  # Signal all threads to stop
+        self._set_status("Test cancelled by user")
+        self.cancel_button.pack_forget()  # Hide cancel button
 
     def _save_current_results(self):
         """Save current test results to a file."""
@@ -420,7 +440,7 @@ class PingMonitorApp:
                               graph_panel.add_data_point(c, l))
 
             result = self.ping_service.ping_continuous(
-                server.name, server.ip, self.selected_duration, progress_callback
+                server.name, server.ip, self.selected_duration, progress_callback, self.cancel_event
             )
 
             # Update UI with results on main thread
@@ -445,6 +465,7 @@ class PingMonitorApp:
         # Update stats only if this is the last test or single test
         if self.active_tests == 0:
             self.current_test_running = False
+            self.cancel_button.pack_forget()  # Hide cancel button
 
             # If only one result, show it in the stats panel
             if len(self.current_results) == 1:
@@ -464,7 +485,7 @@ class PingMonitorApp:
                     )
                     self.stats_labels["std_dev"].config(
                         text=f"{result.std_dev:.2f} ms",
-                        fg=Colors.TEXT_PRIMARY
+                        fg=Colours.TEXT_PRIMARY
                     )
                     self._set_status(f"Test complete: {result.server_name} - Avg: {result.mean:.2f}ms")
                 else:
@@ -489,12 +510,12 @@ class PingMonitorApp:
                     if all_maxs:
                         self.stats_labels["max"].config(text=f"{max(all_maxs):.2f} ms",
                                                        fg=Styles.get_status_color(max(all_maxs)))
-                    self.stats_labels["std_dev"].config(text="--", fg=Colors.TEXT_PRIMARY)
+                    self.stats_labels["std_dev"].config(text="--", fg=Colours.TEXT_PRIMARY)
 
     def _clear_stats(self):
         """Clear all statistics displays."""
         for label in self.stats_labels.values():
-            label.config(text="--", fg=Colors.TEXT_PRIMARY)
+            label.config(text="--", fg=Colours.TEXT_PRIMARY)
 
     def _run_batch_test(self):
         """Run ping tests on all servers and save results."""

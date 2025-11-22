@@ -1,30 +1,30 @@
 """
-UI styling constants and color schemes for the Ping Monitor application.
+UI styling constants and colour schemes for the Ping Monitor application.
 """
 import platform
 
 
-class Colors:
-    """Color palette for the application."""
+class Colours:
+    """Colour palette for the application."""
 
-    # Background colors - standard Windows gray
-    BG_PRIMARY = "#F0F0F0"  # Standard Windows gray
+    # Background colours - standard Windows grey
+    BG_PRIMARY = "#F0F0F0"  # Standard Windows grey
     BG_SECONDARY = "#E0E0E0"
     BG_TERTIARY = "#D4D4D4"
 
-    # Text colors
+    # Text colours
     TEXT_PRIMARY = "black"
     TEXT_SECONDARY = "#000000"
     TEXT_LIGHT = "#666666"
 
-    # Status colors (for ping results) - more muted
+    # Status colours (for ping results) - more muted
     STATUS_EXCELLENT = "#008000"  # Dark green - < 50ms
     STATUS_GOOD = "#4C9900"       # Green - 50-100ms
     STATUS_FAIR = "#CC6600"       # Orange - 100-200ms
     STATUS_POOR = "#CC0000"       # Dark red - > 200ms
     STATUS_FAILED = "#666666"     # Gray - failed ping
 
-    # Border colors
+    # Border colours
     BORDER_LIGHT = "#CCCCCC"
     BORDER_MEDIUM = "#999999"
     BORDER_DARK = "#666666"
@@ -103,8 +103,8 @@ class Styles:
         """Style for standard labels."""
         return {
             "font": (Fonts.get_default_family(), Fonts.SIZE_NORMAL),
-            "bg": Colors.BG_PRIMARY,
-            "fg": Colors.TEXT_PRIMARY
+            "bg": Colours.BG_PRIMARY,
+            "fg": Colours.TEXT_PRIMARY
         }
 
     @staticmethod
@@ -112,28 +112,28 @@ class Styles:
         """Style for section headings."""
         return {
             "font": (Fonts.get_default_family(), Fonts.SIZE_HEADING, "bold"),
-            "bg": Colors.BG_PRIMARY,
-            "fg": Colors.TEXT_PRIMARY
+            "bg": Colours.BG_PRIMARY,
+            "fg": Colours.TEXT_PRIMARY
         }
 
     @staticmethod
-    def get_status_color(latency_ms: float) -> str:
+    def get_status_colour(latency_ms: float) -> str:
         """
-        Get status color based on ping latency.
+        Get status colour based on ping latency.
 
         Args:
             latency_ms: Latency in milliseconds
 
         Returns:
-            Hex color code
+            Hex colour code
         """
         if latency_ms < 0:
-            return Colors.STATUS_FAILED
+            return Colours.STATUS_FAILED
         elif latency_ms < 50:
-            return Colors.STATUS_EXCELLENT
+            return Colours.STATUS_EXCELLENT
         elif latency_ms < 100:
-            return Colors.STATUS_GOOD
+            return Colours.STATUS_GOOD
         elif latency_ms < 200:
-            return Colors.STATUS_FAIR
+            return Colours.STATUS_FAIR
         else:
-            return Colors.STATUS_POOR
+            return Colours.STATUS_POOR

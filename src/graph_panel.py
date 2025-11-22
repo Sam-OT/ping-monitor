@@ -5,7 +5,7 @@ import tkinter as tk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from typing import List, Optional
-from styles import Colors, Fonts
+from styles import Colours, Fonts
 
 
 class GraphPanel:
@@ -33,20 +33,20 @@ class GraphPanel:
     def _setup_graph(self):
         """Set up the matplotlib figure and canvas."""
         # Create figure with white background
-        self.figure = Figure(figsize=(8, 4), dpi=100, facecolor=Colors.BG_PRIMARY)
+        self.figure = Figure(figsize=(8, 4), dpi=100, facecolor=Colours.BG_PRIMARY)
         self.ax = self.figure.add_subplot(111)
 
         # Style the plot
-        self.ax.set_facecolor(Colors.BG_SECONDARY)
-        self.ax.grid(True, linestyle='--', alpha=0.3, color=Colors.BORDER_MEDIUM)
+        self.ax.set_facecolor(Colours.BG_SECONDARY)
+        self.ax.grid(True, linestyle='--', alpha=0.3, color=Colours.BORDER_MEDIUM)
         self.ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
         self.ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
 
-        # Set spine colors
+        # Set spine colours
         for spine in self.ax.spines.values():
-            spine.set_edgecolor(Colors.BORDER_MEDIUM)
+            spine.set_edgecolor(Colours.BORDER_MEDIUM)
 
         # Create canvas
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.parent)
@@ -62,8 +62,8 @@ class GraphPanel:
         self.current_server = ""
 
         self.ax.clear()
-        self.ax.set_facecolor(Colors.BG_SECONDARY)
-        self.ax.grid(True, linestyle='--', alpha=0.3, color=Colors.BORDER_MEDIUM)
+        self.ax.set_facecolor(Colours.BG_SECONDARY)
+        self.ax.grid(True, linestyle='--', alpha=0.3, color=Colours.BORDER_MEDIUM)
         self.ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
         self.ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL,
@@ -71,9 +71,9 @@ class GraphPanel:
         self.ax.set_title('No data', fontsize=Fonts.SIZE_HEADING,
                          fontfamily=Fonts.get_default_family())
 
-        # Set spine colors
+        # Set spine colours
         for spine in self.ax.spines.values():
-            spine.set_edgecolor(Colors.BORDER_MEDIUM)
+            spine.set_edgecolor(Colours.BORDER_MEDIUM)
 
         self.canvas.draw()
 
@@ -95,7 +95,7 @@ class GraphPanel:
         self.ax.set_title(title,
                          fontsize=Fonts.SIZE_HEADING,
                          fontfamily=Fonts.get_default_family(),
-                         color=Colors.TEXT_PRIMARY)
+                         color=Colours.TEXT_PRIMARY)
         self.canvas.draw()
 
     def add_data_point(self, ping_number: int, latency: Optional[float]):
@@ -128,20 +128,20 @@ class GraphPanel:
         if valid_pings:
             valid_ping_numbers, valid_latencies = zip(*valid_pings)
 
-            # Determine line color based on average latency
+            # Determine line colour based on average latency
             avg_latency = sum(valid_latencies) / len(valid_latencies)
             if avg_latency < 50:
-                line_color = Colors.STATUS_EXCELLENT
+                line_colour = Colours.STATUS_EXCELLENT
             elif avg_latency < 100:
-                line_color = Colors.STATUS_GOOD
+                line_colour = Colours.STATUS_GOOD
             elif avg_latency < 200:
-                line_color = Colors.STATUS_FAIR
+                line_colour = Colours.STATUS_FAIR
             else:
-                line_color = Colors.STATUS_POOR
+                line_colour = Colours.STATUS_POOR
 
             # Plot the line
             self.ax.plot(valid_ping_numbers, valid_latencies,
-                        color=line_color, linewidth=2, marker='o',
+                        color=line_colour, linewidth=2, marker='o',
                         markersize=4, label='Latency')
 
             # Add failed ping markers if any
@@ -149,21 +149,21 @@ class GraphPanel:
             if failed_pings:
                 # Show failed pings at y=0
                 self.ax.scatter(failed_pings, [0] * len(failed_pings),
-                              color=Colors.STATUS_FAILED, marker='x',
+                              color=Colours.STATUS_FAILED, marker='x',
                               s=50, label='Failed', zorder=5)
 
         # Style the plot
-        self.ax.set_facecolor(Colors.BG_SECONDARY)
-        self.ax.grid(True, linestyle='--', alpha=0.3, color=Colors.BORDER_MEDIUM)
+        self.ax.set_facecolor(Colours.BG_SECONDARY)
+        self.ax.grid(True, linestyle='--', alpha=0.3, colour=Colours.BORDER_MEDIUM)
         self.ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
         self.ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
         # Keep the same title (already set in start_new_test)
 
-        # Set spine colors
+        # Set spine colours
         for spine in self.ax.spines.values():
-            spine.set_edgecolor(Colors.BORDER_MEDIUM)
+            spine.set_edgecolor(Colours.BORDER_MEDIUM)
 
         # Add legend if there are failed pings
         if any(lat == 0 for lat in self.latencies):
