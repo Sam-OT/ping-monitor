@@ -506,19 +506,19 @@ class PingMonitorApp:
                              bg=Colours.BG_PRIMARY,
                              fg=Colours.TEXT_PRIMARY,
                              relief=tk.FLAT,
-                             height=len(self.current_results) + 1,  # +1 for header
+                             height=len(self.current_results) + 2,  # +2 for header and separator
                              wrap=tk.NONE,
                              cursor="arrow")
         text_widget.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
 
-        # Build header
-        header = f"{'Server':<25} {'Mean':>10} {'Min':>10} {'Max':>10} {'Std Dev':>10}\n"
+        # Build header with left-aligned columns
+        header = f"{'Server':<25} {'Mean':<13} {'Min':<13} {'Max':<13} {'Std Dev':<13}\n"
         text_widget.insert('1.0', header)
         text_widget.tag_add('header', '1.0', '1.end')
         text_widget.tag_config('header', font=(Fonts.get_monospace_family(), Fonts.SIZE_NORMAL, 'bold'))
 
         # Add separator line
-        separator = "-" * 70 + "\n"
+        separator = "-" * 80 + "\n"
         text_widget.insert('end', separator)
 
         # Add results for each server
@@ -528,20 +528,25 @@ class PingMonitorApp:
             display_name = server_name[:24] if len(server_name) > 24 else server_name
 
             if result.mean is not None:
-                line = f"{display_name:<25} {result.mean:>9.1f}ms {result.min:>9.1f}ms {result.max:>9.1f}ms {result.std_dev:>9.1f}ms\n"
+                # Format values with ms suffix, then align
+                mean_str = f"{result.mean:.1f}ms"
+                min_str = f"{result.min:.1f}ms"
+                max_str = f"{result.max:.1f}ms"
+                std_str = f"{result.std_dev:.1f}ms"
+                line = f"{display_name:<25} {mean_str:<13} {min_str:<13} {max_str:<13} {std_str:<13}\n"
                 text_widget.insert('end', line)
 
                 # Color-code the mean value
                 mean_color = Styles.get_status_colour(result.mean)
                 start_pos = f"{line_num}.26"
-                end_pos = f"{line_num}.36"
+                end_pos = f"{line_num}.{26 + len(mean_str)}"
                 text_widget.tag_add(f'mean_{line_num}', start_pos, end_pos)
                 text_widget.tag_config(f'mean_{line_num}', foreground=mean_color)
             else:
-                line = f"{display_name:<25} {'Failed':>10}\n"
+                line = f"{display_name:<25} {'Failed':<13}\n"
                 text_widget.insert('end', line)
                 start_pos = f"{line_num}.26"
-                end_pos = f"{line_num}.36"
+                end_pos = f"{line_num}.33"
                 text_widget.tag_add(f'failed_{line_num}', start_pos, end_pos)
                 text_widget.tag_config(f'failed_{line_num}', foreground=Colours.STATUS_FAILED)
 

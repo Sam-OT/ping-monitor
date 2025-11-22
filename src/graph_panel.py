@@ -89,21 +89,33 @@ class GraphPanel:
             server_name: Name of the server being tested
             server_ip: IP address of the server
         """
-        # Title format: "Server Name: IP" - store for later use
-        title = f'{server_name}: {server_ip}' if server_ip else server_name
-        self.current_server = title  # Store the full title
-
+        # Clear data first
         self.ping_numbers = []
         self.latencies = []
-        self.clear()
 
-        # Set title - make it prominent
+        # Title format: "Server Name: IP" - store for later use
+        title = f'{server_name}: {server_ip}' if server_ip else server_name
+        self.current_server = title  # Store AFTER clearing data
+
+        # Clear and setup the axes
+        self.ax.clear()
+        self.ax.set_facecolor(Colours.BG_SECONDARY)
+        self.ax.grid(True, linestyle='--', alpha=0.3, color=Colours.BORDER_MEDIUM)
+        self.ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL,
+                          fontfamily=Fonts.get_default_family())
+        self.ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL,
+                          fontfamily=Fonts.get_default_family())
+
+        # Set spine colours
+        for spine in self.ax.spines.values():
+            spine.set_edgecolor(Colours.BORDER_MEDIUM)
+
+        # Set title
         self.ax.set_title(title,
-                         fontsize=Fonts.SIZE_TITLE,  # Larger font
+                         fontsize=Fonts.SIZE_TITLE,
                          fontfamily=Fonts.get_default_family(),
-                         fontweight='bold',  # Bold text
                          color=Colours.TEXT_PRIMARY,
-                         pad=10)  # More padding
+                         pad=10)
         self.canvas.draw()
 
     def add_data_point(self, ping_number: int, latency: Optional[float]):
@@ -173,7 +185,6 @@ class GraphPanel:
             self.ax.set_title(self.current_server,
                              fontsize=Fonts.SIZE_TITLE,
                              fontfamily=Fonts.get_default_family(),
-                             fontweight='bold',
                              color=Colours.TEXT_PRIMARY,
                              pad=10)
 
