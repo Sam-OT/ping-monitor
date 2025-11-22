@@ -38,10 +38,10 @@ class Fonts:
         """Get the default font family for the current platform."""
         system = platform.system()
         if system == "Windows":
-            return "MS Sans Serif"  # Classic Windows font
+            return "Arial"  # Widely available on Windows
         elif system == "Darwin":  # macOS
             return "Helvetica"
-        else:  # Linux
+        else:  # Linux (including WSL)
             return "DejaVu Sans"
 
     @staticmethod
