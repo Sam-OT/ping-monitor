@@ -37,11 +37,14 @@ class PingMonitorApp:
         # State
         self.current_test_running = False
         self.selected_duration = 60  # Default: 1 minute
+        self.current_results = {}  # Store results: {server_name: PingResult}
+        self.active_tests = 0  # Count of running tests
 
         # UI Components
         self.server_listbox = None
         self.stats_labels = {}
-        self.graph_panel = None
+        self.graph_panels = {}  # Multiple graph panels for tiling
+        self.graphs_container = None
 
         # Build UI
         self._build_ui()
@@ -95,7 +98,8 @@ class PingMonitorApp:
             font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
             height=8,
             relief=tk.SUNKEN,
-            bd=2
+            bd=2,
+            selectmode=tk.EXTENDED  # Allow multi-select
         )
         self.server_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=self.server_listbox.yview)
@@ -113,7 +117,11 @@ class PingMonitorApp:
                  **Styles.get_button_style()).pack(pady=2)
 
         tk.Button(button_frame, text="Test",
-                 command=self._test_selected_server,
+                 command=self._test_selected_servers,
+                 **Styles.get_button_style()).pack(pady=2)
+
+        tk.Button(button_frame, text="Save Results",
+                 command=self._save_current_results,
                  **Styles.get_button_style()).pack(pady=2)
 
         # Populate listbox
@@ -186,7 +194,9 @@ class PingMonitorApp:
         section_frame = tk.Frame(parent, bg=Colors.BG_PRIMARY, relief=tk.RIDGE, bd=2)
         section_frame.pack(fill=tk.BOTH, expand=True, pady=(0, Spacing.PAD_MEDIUM))
 
-        self.graph_panel = GraphPanel(section_frame)
+        # Container for multiple graph panels (tiled layout)
+        self.graphs_container = tk.Frame(section_frame, bg=Colors.BG_PRIMARY)
+        self.graphs_container.pack(fill=tk.BOTH, expand=True)
 
     def _build_batch_section(self, parent):
         """Build the batch test section."""
@@ -317,16 +327,75 @@ class PingMonitorApp:
         server = self.servers[index]
         self._remove_server(server.name)
 
-    def _test_selected_server(self):
-        """Test the currently selected server."""
+    def _test_selected_servers(self):
+        """Test the currently selected server(s)."""
         selection = self.server_listbox.curselection()
         if not selection:
-            messagebox.showwarning("No Selection", "Please select a server to test")
+            messagebox.showwarning("No Selection", "Please select one or more servers to test")
             return
 
-        index = selection[0]
-        server = self.servers[index]
-        self._start_ping_test(server)
+        if self.current_test_running:
+            messagebox.showwarning("Test Running", "A test is already running. Please wait for it to complete.")
+            return
+
+        # Clear previous results and graphs
+        self.current_results.clear()
+        for widget in self.graphs_container.winfo_children():
+            widget.destroy()
+        self.graph_panels.clear()
+        self._clear_stats()
+
+        # Get selected servers
+        selected_servers = [self.servers[i] for i in selection]
+
+        # Calculate grid layout for graphs
+        num_servers = len(selected_servers)
+        cols = min(2, num_servers)  # Max 2 columns
+        rows = (num_servers + cols - 1) // cols  # Ceiling division
+
+        # Create graph panels in grid layout
+        for idx, server in enumerate(selected_servers):
+            row = idx // cols
+            col = idx % cols
+
+            graph_frame = tk.Frame(self.graphs_container, bg=Colors.BG_PRIMARY,
+                                  relief=tk.RIDGE, bd=1)
+            graph_frame.grid(row=row, column=col, sticky="nsew", padx=2, pady=2)
+
+            # Make grid cells expand evenly
+            self.graphs_container.grid_rowconfigure(row, weight=1)
+            self.graphs_container.grid_columnconfigure(col, weight=1)
+
+            # Create graph panel for this server
+            graph_panel = GraphPanel(graph_frame)
+            self.graph_panels[server.name] = graph_panel
+
+        # Start all tests simultaneously
+        self.current_test_running = True
+        self.active_tests = len(selected_servers)
+
+        for server in selected_servers:
+            self._start_ping_test(server)
+
+    def _save_current_results(self):
+        """Save current test results to a file."""
+        if not self.current_results:
+            messagebox.showwarning("No Results", "No test results to save. Run a test first.")
+            return
+
+        # Format results
+        result_lines = []
+        for server_name, result in self.current_results.items():
+            result_lines.append(str(result))
+
+        # Save to file
+        success, filepath = self.storage.save_batch_results(result_lines)
+
+        if success:
+            messagebox.showinfo("Results Saved", f"Results saved to:\n{filepath}")
+            self._set_status(f"Results saved to file")
+        else:
+            messagebox.showerror("Error", "Failed to save results")
 
     def _on_duration_changed(self):
         """Handle duration selection change."""
@@ -334,63 +403,93 @@ class PingMonitorApp:
 
     def _start_ping_test(self, server: Server):
         """Start a ping test for a specific server."""
-        if self.current_test_running:
-            messagebox.showwarning("Test Running",
-                                  "A test is already running. Please wait for it to complete.")
+        # Get the graph panel for this server
+        graph_panel = self.graph_panels.get(server.name)
+        if not graph_panel:
             return
 
-        # Clear previous stats
-        self._clear_stats()
-
         # Start graph
-        self.graph_panel.start_new_test(server.name)
+        graph_panel.start_new_test(server.name, server.ip)
 
-        # Run test in background thread
-        self.current_test_running = True
         self._set_status(f"Testing {server.name}...")
 
         def run_test():
             def progress_callback(latency, current, total):
                 # Update graph on main thread
-                self.root.after(0, lambda: self.graph_panel.add_data_point(current, latency))
+                self.root.after(0, lambda l=latency, c=current:
+                              graph_panel.add_data_point(c, l))
 
             result = self.ping_service.ping_continuous(
                 server.name, server.ip, self.selected_duration, progress_callback
             )
 
             # Update UI with results on main thread
-            self.root.after(0, lambda: self._display_results(result))
+            self.root.after(0, lambda r=result: self._display_results(r))
 
         thread = threading.Thread(target=run_test, daemon=True)
         thread.start()
 
     def _display_results(self, result: PingResult):
         """Display test results in the UI."""
-        self.current_test_running = False
-        self.graph_panel.finalize_test()
+        # Store result
+        self.current_results[result.server_name] = result
 
-        if result.mean is not None:
-            self.stats_labels["mean"].config(
-                text=f"{result.mean:.2f} ms",
-                fg=Styles.get_status_color(result.mean)
-            )
-            self.stats_labels["min"].config(
-                text=f"{result.min:.2f} ms",
-                fg=Styles.get_status_color(result.min)
-            )
-            self.stats_labels["max"].config(
-                text=f"{result.max:.2f} ms",
-                fg=Styles.get_status_color(result.max)
-            )
-            self.stats_labels["std_dev"].config(
-                text=f"{result.std_dev:.2f} ms",
-                fg=Colors.TEXT_PRIMARY
-            )
-            self._set_status(f"Test complete: {result.server_name} - Avg: {result.mean:.2f}ms")
-        else:
-            self._clear_stats()
-            self._set_status(f"Test failed: {result.server_name}")
-            messagebox.showerror("Test Failed", "All pings failed. Check the IP address.")
+        # Finalize graph for this server
+        graph_panel = self.graph_panels.get(result.server_name)
+        if graph_panel:
+            graph_panel.finalize_test()
+
+        # Decrement active tests counter
+        self.active_tests -= 1
+
+        # Update stats only if this is the last test or single test
+        if self.active_tests == 0:
+            self.current_test_running = False
+
+            # If only one result, show it in the stats panel
+            if len(self.current_results) == 1:
+                result = list(self.current_results.values())[0]
+                if result.mean is not None:
+                    self.stats_labels["mean"].config(
+                        text=f"{result.mean:.2f} ms",
+                        fg=Styles.get_status_color(result.mean)
+                    )
+                    self.stats_labels["min"].config(
+                        text=f"{result.min:.2f} ms",
+                        fg=Styles.get_status_color(result.min)
+                    )
+                    self.stats_labels["max"].config(
+                        text=f"{result.max:.2f} ms",
+                        fg=Styles.get_status_color(result.max)
+                    )
+                    self.stats_labels["std_dev"].config(
+                        text=f"{result.std_dev:.2f} ms",
+                        fg=Colors.TEXT_PRIMARY
+                    )
+                    self._set_status(f"Test complete: {result.server_name} - Avg: {result.mean:.2f}ms")
+                else:
+                    self._set_status(f"Test failed: {result.server_name}")
+            else:
+                # Multiple tests complete
+                self._set_status(f"All tests complete ({len(self.current_results)} servers)")
+                # Calculate average across all servers
+                all_means = [r.mean for r in self.current_results.values() if r.mean is not None]
+                if all_means:
+                    avg_mean = sum(all_means) / len(all_means)
+                    self.stats_labels["mean"].config(
+                        text=f"{avg_mean:.2f} ms",
+                        fg=Styles.get_status_color(avg_mean)
+                    )
+                    # Show overall min/max across all servers
+                    all_mins = [r.min for r in self.current_results.values() if r.min is not None]
+                    all_maxs = [r.max for r in self.current_results.values() if r.max is not None]
+                    if all_mins:
+                        self.stats_labels["min"].config(text=f"{min(all_mins):.2f} ms",
+                                                       fg=Styles.get_status_color(min(all_mins)))
+                    if all_maxs:
+                        self.stats_labels["max"].config(text=f"{max(all_maxs):.2f} ms",
+                                                       fg=Styles.get_status_color(max(all_maxs)))
+                    self.stats_labels["std_dev"].config(text="--", fg=Colors.TEXT_PRIMARY)
 
     def _clear_stats(self):
         """Clear all statistics displays."""

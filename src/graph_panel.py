@@ -77,18 +77,22 @@ class GraphPanel:
 
         self.canvas.draw()
 
-    def start_new_test(self, server_name: str):
+    def start_new_test(self, server_name: str, server_ip: str = ""):
         """
         Start a new ping test, clearing previous data.
 
         Args:
             server_name: Name of the server being tested
+            server_ip: IP address of the server
         """
         self.current_server = server_name
         self.ping_numbers = []
         self.latencies = []
         self.clear()
-        self.ax.set_title(f'Pinging {server_name}...',
+
+        # Title format: "Server Name: IP"
+        title = f'{server_name}: {server_ip}' if server_ip else server_name
+        self.ax.set_title(title,
                          fontsize=Fonts.SIZE_HEADING,
                          fontfamily=Fonts.get_default_family(),
                          color=Colors.TEXT_PRIMARY)
@@ -155,10 +159,7 @@ class GraphPanel:
                           fontfamily=Fonts.get_default_family())
         self.ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL,
                           fontfamily=Fonts.get_default_family())
-        self.ax.set_title(f'Pinging {self.current_server}',
-                         fontsize=Fonts.SIZE_HEADING,
-                         fontfamily=Fonts.get_default_family(),
-                         color=Colors.TEXT_PRIMARY)
+        # Keep the same title (already set in start_new_test)
 
         # Set spine colors
         for spine in self.ax.spines.values():
@@ -177,9 +178,5 @@ class GraphPanel:
 
     def finalize_test(self):
         """Finalize the graph after test completion."""
-        if self.current_server:
-            self.ax.set_title(f'Ping Results: {self.current_server}',
-                            fontsize=Fonts.SIZE_HEADING,
-                            fontfamily=Fonts.get_default_family(),
-                            color=Colors.TEXT_PRIMARY)
-            self.canvas.draw()
+        # Title is already set correctly in start_new_test, no need to change it
+        pass
