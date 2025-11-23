@@ -486,10 +486,10 @@ class PingMonitorApp:
         # Get selected servers
         selected_servers = [self.servers[i] for i in selection]
 
-        # Calculate grid layout for graphs
+        # Calculate grid layout for graphs (2 rows, landscape)
         num_servers = len(selected_servers)
-        cols = min(2, num_servers)  # Max 2 columns
-        rows = (num_servers + cols - 1) // cols  # Ceiling division
+        rows = min(2, num_servers)  # Max 2 rows
+        cols = (num_servers + rows - 1) // rows  # Ceiling division
 
         # Create graph panels in grid layout
         for idx, server in enumerate(selected_servers):
@@ -562,13 +562,13 @@ class PingMonitorApp:
             return False, ""
 
         try:
-            # Calculate grid layout (2 columns)
+            # Calculate grid layout (2 rows)
             num_graphs = len(self.graph_panels)
-            cols = min(2, num_graphs)
-            rows = (num_graphs + cols - 1) // cols
+            rows = min(2, num_graphs)
+            cols = (num_graphs + rows - 1) // rows
 
             # Create figure with subplots
-            fig = Figure(figsize=(12, 4 * rows), facecolor='white')
+            fig = Figure(figsize=(6 * cols, 8), facecolor='white')
 
             # Plot each graph (sorted alphabetically)
             for idx, (server_name, graph_panel) in enumerate(sorted(self.graph_panels.items(), key=lambda x: x[0].lower())):

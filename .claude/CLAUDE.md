@@ -116,7 +116,7 @@ ping-monitor/
 **Save Results**
 - "Save" button exports both TXT and PNG files with synchronized timestamps
 - TXT file: Tabular format with statistics (mean, min, max, std dev)
-- PNG file: Grid layout (2 columns) showing all graphs with colour-coded data points
+- PNG file: Grid layout (2 rows, landscape orientation) showing all graphs with colour-coded data points
 - Graph titles include mean latency: "SERVER_NAME: IP | Mean: XXms"
 - Files saved to `results/` directory with timestamp format: `YYYY-MM-DD_HH-MM-SS`
 
@@ -243,8 +243,7 @@ uv run pyinstaller build.spec
 ## Dependencies (from pyproject.toml)
 ```toml
 dependencies = [
-    "matplotlib>=3.8.0",
-    "numpy>=1.24.0",  # Required by matplotlib
+    "matplotlib>=3.8.0",  # Automatically includes numpy and other required dependencies
 ]
 
 [project.optional-dependencies]
