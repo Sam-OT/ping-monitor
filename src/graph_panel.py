@@ -37,9 +37,12 @@ class GraphPanel:
 
     def _setup_graph(self):
         """Set up the matplotlib figure and canvas."""
-        # Create figure with white background
-        self.figure = Figure(figsize=(8, 4), dpi=100, facecolor=Colours.BG_PRIMARY)
+        # Create figure with white background (compact size to fit multiple graphs)
+        self.figure = Figure(figsize=(3.5, 2.5), dpi=80, facecolor=Colours.BG_PRIMARY)
         self.ax = self.figure.add_subplot(111)
+
+        # Use tight layout to prevent clipping
+        self.figure.tight_layout(pad=1.0)
 
         # Style the plot
         self.ax.set_facecolor(Colours.BG_SECONDARY)
@@ -134,6 +137,9 @@ class GraphPanel:
                          fontfamily=Fonts.get_default_family(),
                          color=Colours.TEXT_PRIMARY,
                          pad=10)
+
+        # Adjust layout to prevent clipping
+        self.figure.tight_layout(pad=1.0)
         self.canvas.draw_idle()
 
     def add_data_point(self, ping_number: int, latency: Optional[float]):
