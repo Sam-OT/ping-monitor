@@ -116,7 +116,7 @@ ping-monitor/
 **Save Results**
 - "Save" button exports both TXT and PNG files with synchronized timestamps
 - TXT file: Tabular format with statistics (mean, min, max, std dev)
-- PNG file: Grid layout (2 columns) showing all graphs with color-coded data points
+- PNG file: Grid layout (2 columns) showing all graphs with colour-coded data points
 - Graph titles include mean latency: "SERVER_NAME: IP | Mean: XXms"
 - Files saved to `results/` directory with timestamp format: `YYYY-MM-DD_HH-MM-SS`
 

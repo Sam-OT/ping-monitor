@@ -88,7 +88,7 @@ class PingMonitorApp:
         section_frame.pack(fill=tk.BOTH, expand=True, pady=(0, Spacing.PAD_MEDIUM))
 
         # Header
-        tk.Label(section_frame, text="Servers:", **Styles.get_heading_style()).pack(anchor=tk.W)
+        tk.Label(section_frame, text="Servers", **Styles.get_heading_style()).pack(anchor=tk.W)
 
         # Container for listbox and buttons
         list_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
@@ -532,9 +532,9 @@ class PingMonitorApp:
         # Generate timestamp once for both files
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        # Format results
+        # Format results (sorted alphabetically)
         result_lines = []
-        for server_name, result in self.current_results.items():
+        for server_name, result in sorted(self.current_results.items(), key=lambda x: x[0].lower()):
             result_lines.append(str(result))
 
         # Save text file with timestamp
@@ -570,8 +570,8 @@ class PingMonitorApp:
             # Create figure with subplots
             fig = Figure(figsize=(12, 4 * rows), facecolor='white')
 
-            # Plot each graph
-            for idx, (server_name, graph_panel) in enumerate(self.graph_panels.items()):
+            # Plot each graph (sorted alphabetically)
+            for idx, (server_name, graph_panel) in enumerate(sorted(self.graph_panels.items(), key=lambda x: x[0].lower())):
                 ax = fig.add_subplot(rows, cols, idx + 1)
 
                 # Get data from graph panel
@@ -739,9 +739,9 @@ class PingMonitorApp:
         separator = "-" * 80 + "\n"
         text_widget.insert('end', separator)
 
-        # Add results for each server
+        # Add results for each server (sorted alphabetically)
         line_num = 3
-        for server_name, result in self.current_results.items():
+        for server_name, result in sorted(self.current_results.items(), key=lambda x: x[0].lower()):
             # Truncate server name if too long
             display_name = server_name[:24] if len(server_name) > 24 else server_name
 
