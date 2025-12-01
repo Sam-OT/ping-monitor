@@ -77,9 +77,6 @@ class PingMonitorApp:
         # Graph section
         self._build_graph_section(main_frame)
 
-        # Bottom section: Batch test button
-        self._build_batch_section(main_frame)
-
         # Status bar
         self._build_status_bar(main_frame)
 
@@ -196,7 +193,7 @@ class PingMonitorApp:
         self.custom_duration_entry.bind('<Return>', lambda e: self._on_duration_changed())
 
     def _build_control_section(self, parent):
-        """Build the control section with cancel button and timer."""
+        """Build the control section with test buttons and timer."""
         section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
         section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
 
@@ -207,7 +204,13 @@ class PingMonitorApp:
                                       **Styles.get_button_style())
         self.cancel_button.pack()
 
-        # Timer container (absolute position - doesn't affect button centering)
+        # Test All Servers button (absolute position on left - mirrors timer)
+        self.batch_button = tk.Button(section_frame, text="Test All Servers",
+                                     command=self._run_batch_test,
+                                     **Styles.get_button_style())
+        self.batch_button.place(relx=0.35, rely=0.5, anchor=tk.E)
+
+        # Timer container (absolute position on right - mirrors batch button)
         timer_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
         timer_container.place(relx=0.65, rely=0.5, anchor=tk.W)
 
@@ -255,19 +258,6 @@ class PingMonitorApp:
         self.graphs_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
         self.graphs_container.pack(fill=tk.BOTH, expand=True)
 
-    def _build_batch_section(self, parent):
-        """Build the batch test section."""
-        section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
-        section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_SMALL))
-
-        # Container for batch button
-        button_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
-        button_container.pack()
-
-        self.batch_button = tk.Button(button_container, text="Run All Servers",
-                                     command=self._run_batch_test,
-                                     **Styles.get_button_style())
-        self.batch_button.pack(padx=Spacing.PAD_SMALL)
 
     def _build_status_bar(self, parent):
         """Build the status bar at the bottom."""
@@ -569,6 +559,7 @@ class PingMonitorApp:
         self.active_tests = len(selected_servers)
         self.cancel_event.clear()  # Clear any previous cancel signal
         self.cancel_button.config(state=tk.NORMAL)  # Enable cancel button
+        self.batch_button.config(state=tk.DISABLED)  # Disable batch button during test
         self.timer_label.config(text=f"0/{self.selected_duration}")  # Initialize timer
 
         for server in selected_servers:
@@ -579,6 +570,7 @@ class PingMonitorApp:
         self.cancel_event.set()  # Signal all threads to stop
         self._set_status("Test cancelled by user")
         self.cancel_button.config(state=tk.DISABLED)  # Disable cancel button
+        self.batch_button.config(state=tk.NORMAL)  # Re-enable batch button
         self.timer_label.config(text="")  # Clear timer
 
     def _save_current_results(self):
@@ -761,6 +753,7 @@ class PingMonitorApp:
         if self.active_tests == 0:
             self.current_test_running = False
             self.cancel_button.config(state=tk.DISABLED)  # Disable cancel button
+            self.batch_button.config(state=tk.NORMAL)  # Re-enable batch button
             self.timer_label.config(text="")  # Clear timer
             self._update_stats_display()
             self._set_status(f"Test complete ({len(self.current_results)} server(s))")
@@ -866,9 +859,10 @@ class PingMonitorApp:
             widget.destroy()
         self.graph_panels.clear()
 
-        # Enable cancel button and initialize timer
+        # Enable cancel button, disable batch button, initialize timer
         self.cancel_event.clear()
         self.cancel_button.config(state=tk.NORMAL)
+        self.batch_button.config(state=tk.DISABLED)
         self.timer_label.config(text=f"0/{self.selected_duration}")
 
         self._set_status("Running batch test...")
@@ -903,6 +897,7 @@ class PingMonitorApp:
         """Handle batch test completion."""
         self.current_test_running = False
         self.cancel_button.config(state=tk.DISABLED)  # Disable cancel button
+        self.batch_button.config(state=tk.NORMAL)  # Re-enable batch button
         self.timer_label.config(text="")  # Clear timer
 
         if success:
