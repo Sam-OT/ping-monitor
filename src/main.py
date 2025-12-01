@@ -77,9 +77,6 @@ class PingMonitorApp:
         # Graph section
         self._build_graph_section(main_frame)
 
-        # Status bar
-        self._build_status_bar(main_frame)
-
     def _build_server_section(self, parent):
         """Build the server selection and management section."""
         section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
@@ -257,15 +254,6 @@ class PingMonitorApp:
         # Container for multiple graph panels (tiled layout)
         self.graphs_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
         self.graphs_container.pack(fill=tk.BOTH, expand=True)
-
-
-    def _build_status_bar(self, parent):
-        """Build the status bar at the bottom."""
-        self.status_bar = tk.Label(parent, text="Ready", bg=Colours.BG_TERTIARY,
-                                  fg=Colours.TEXT_SECONDARY, anchor=tk.W,
-                                  font=(Fonts.get_default_family(), Fonts.SIZE_SMALL),
-                                  relief=tk.SUNKEN, bd=1)
-        self.status_bar.pack(fill=tk.X, side=tk.BOTTOM)
 
     def _refresh_server_list(self):
         """Refresh the server listbox."""
@@ -716,8 +704,6 @@ class PingMonitorApp:
         # Start graph with duration
         graph_panel.start_new_test(server.name, server.ip, self.selected_duration)
 
-        self._set_status(f"Testing {server.name}...")
-
         def run_test():
             def progress_callback(latency, current, total):
                 # Update graph and ping label on main thread
@@ -909,8 +895,8 @@ class PingMonitorApp:
             messagebox.showerror("Error", "Failed to save batch results")
 
     def _set_status(self, message: str):
-        """Update the status bar."""
-        self.status_bar.config(text=message)
+        """No-op - status bar removed."""
+        pass
 
 
 def main():
