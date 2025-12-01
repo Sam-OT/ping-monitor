@@ -200,22 +200,29 @@ class PingMonitorApp:
         section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
         section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
 
-        # Cancel button and timer (centered)
-        button_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
-        button_container.pack()
-
-        self.cancel_button = tk.Button(button_container, text="Cancel Test",
+        # Cancel button (truly centered using pack)
+        self.cancel_button = tk.Button(section_frame, text="Cancel Test",
                                       command=self._cancel_test,
                                       state=tk.DISABLED,
                                       **Styles.get_button_style())
-        self.cancel_button.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
+        self.cancel_button.pack()
 
-        # Timer label (elapsed/total)
-        self.timer_label = tk.Label(button_container, text="",
+        # Timer container (absolute position - doesn't affect button centering)
+        timer_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
+        timer_container.place(relx=0.65, rely=0.5, anchor=tk.W)
+
+        # Timer label with description
+        timer_desc = tk.Label(timer_container, text="Time:",
+                             bg=Colours.BG_PRIMARY,
+                             fg=Colours.TEXT_SECONDARY,
+                             font=(Fonts.get_default_family(), Fonts.SIZE_SMALL))
+        timer_desc.pack(side=tk.LEFT)
+
+        self.timer_label = tk.Label(timer_container, text="",
                                    bg=Colours.BG_PRIMARY,
-                                   fg=Colours.TEXT_SECONDARY,
+                                   fg=Colours.TEXT_PRIMARY,
                                    font=(Fonts.get_monospace_family(), Fonts.SIZE_NORMAL))
-        self.timer_label.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
+        self.timer_label.pack(side=tk.LEFT, padx=(2, 0))
 
     def _build_stats_section(self, parent):
         """Build the statistics display section."""
