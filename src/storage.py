@@ -3,6 +3,7 @@ Storage module for managing server configurations and results.
 """
 import json
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict
@@ -46,8 +47,13 @@ class Storage:
             base_dir: Base directory for data and results. Defaults to project root.
         """
         if base_dir is None:
-            # Use the directory containing the src folder
-            base_dir = Path(__file__).parent.parent
+            # Detect if running as PyInstaller bundle or as script
+            if getattr(sys, 'frozen', False):
+                # Running as compiled exe - use exe's directory
+                base_dir = Path(sys.executable).parent
+            else:
+                # Running as script - use the directory containing src/
+                base_dir = Path(__file__).parent.parent
 
         self.base_dir = Path(base_dir)
         self.data_dir = self.base_dir / "data"
