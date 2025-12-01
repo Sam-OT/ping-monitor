@@ -51,6 +51,7 @@ class PingMonitorApp:
         self.graph_panels = {}  # Multiple graph panels for tiling
         self.graphs_container = None
         self.cancel_button = None
+        self.timer_label = None  # Timer display: elapsed/total
 
         # Build UI
         self._build_ui()
@@ -195,11 +196,11 @@ class PingMonitorApp:
         self.custom_duration_entry.bind('<Return>', lambda e: self._on_duration_changed())
 
     def _build_control_section(self, parent):
-        """Build the control section with cancel button."""
+        """Build the control section with cancel button and timer."""
         section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
         section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
 
-        # Cancel button (centered)
+        # Cancel button and timer (centered)
         button_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
         button_container.pack()
 
@@ -207,7 +208,14 @@ class PingMonitorApp:
                                       command=self._cancel_test,
                                       state=tk.DISABLED,
                                       **Styles.get_button_style())
-        self.cancel_button.pack(padx=Spacing.PAD_SMALL)
+        self.cancel_button.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
+
+        # Timer label (elapsed/total)
+        self.timer_label = tk.Label(button_container, text="",
+                                   bg=Colours.BG_PRIMARY,
+                                   fg=Colours.TEXT_SECONDARY,
+                                   font=(Fonts.get_monospace_family(), Fonts.SIZE_NORMAL))
+        self.timer_label.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
 
     def _build_stats_section(self, parent):
         """Build the statistics display section."""
@@ -554,6 +562,7 @@ class PingMonitorApp:
         self.active_tests = len(selected_servers)
         self.cancel_event.clear()  # Clear any previous cancel signal
         self.cancel_button.config(state=tk.NORMAL)  # Enable cancel button
+        self.timer_label.config(text=f"0/{self.selected_duration}")  # Initialize timer
 
         for server in selected_servers:
             self._start_ping_test(server)
@@ -563,6 +572,7 @@ class PingMonitorApp:
         self.cancel_event.set()  # Signal all threads to stop
         self._set_status("Test cancelled by user")
         self.cancel_button.config(state=tk.DISABLED)  # Disable cancel button
+        self.timer_label.config(text="")  # Clear timer
 
     def _save_current_results(self):
         """Save current test results to text file and PNG image."""
@@ -711,9 +721,11 @@ class PingMonitorApp:
 
         def run_test():
             def progress_callback(latency, current, total):
-                # Update graph on main thread
-                self.root.after(0, lambda l=latency, c=current:
-                              graph_panel.add_data_point(c, l))
+                # Update graph and timer on main thread
+                def update_ui(lat, cur, tot):
+                    graph_panel.add_data_point(cur, lat)
+                    self.timer_label.config(text=f"{cur}/{tot}")
+                self.root.after(0, lambda l=latency, c=current, t=total: update_ui(l, c, t))
 
             result = self.ping_service.ping_continuous(
                 server.name, server.ip, self.selected_duration, progress_callback, self.cancel_event
@@ -742,6 +754,7 @@ class PingMonitorApp:
         if self.active_tests == 0:
             self.current_test_running = False
             self.cancel_button.config(state=tk.DISABLED)  # Disable cancel button
+            self.timer_label.config(text="")  # Clear timer
             self._update_stats_display()
             self._set_status(f"Test complete ({len(self.current_results)} server(s))")
 
@@ -846,9 +859,10 @@ class PingMonitorApp:
             widget.destroy()
         self.graph_panels.clear()
 
-        # Enable cancel button
+        # Enable cancel button and initialize timer
         self.cancel_event.clear()
         self.cancel_button.config(state=tk.NORMAL)
+        self.timer_label.config(text=f"0/{self.selected_duration}")
 
         self._set_status("Running batch test...")
 
@@ -882,6 +896,7 @@ class PingMonitorApp:
         """Handle batch test completion."""
         self.current_test_running = False
         self.cancel_button.config(state=tk.DISABLED)  # Disable cancel button
+        self.timer_label.config(text="")  # Clear timer
 
         if success:
             self._set_status(f"Batch test complete. Results saved.")
