@@ -117,6 +117,7 @@ class PingMonitorApp:
         button_frame = tk.Frame(list_container, bg=Colours.BG_PRIMARY)
         button_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(Spacing.PAD_SMALL, 0))
 
+        # Add/Remove group
         tk.Button(button_frame, text="Add",
                  command=self._add_server_dialog,
                  **Styles.get_button_style()).pack(pady=2)
@@ -125,10 +126,22 @@ class PingMonitorApp:
                  command=self._remove_selected_server,
                  **Styles.get_button_style()).pack(pady=2)
 
+        # Gap
+        tk.Frame(button_frame, height=10, bg=Colours.BG_PRIMARY).pack()
+
+        # Import/Export group
         tk.Button(button_frame, text="Import",
                  command=self._import_servers_dialog,
                  **Styles.get_button_style()).pack(pady=2)
 
+        tk.Button(button_frame, text="Export",
+                 command=self._export_servers,
+                 **Styles.get_button_style()).pack(pady=2)
+
+        # Gap
+        tk.Frame(button_frame, height=10, bg=Colours.BG_PRIMARY).pack()
+
+        # Test/Save group
         tk.Button(button_frame, text="Test",
                  command=self._test_selected_servers,
                  **Styles.get_button_style()).pack(pady=2)
@@ -459,6 +472,34 @@ class PingMonitorApp:
         except Exception as e:
             messagebox.showerror("Import Error", f"Failed to import file:\n{str(e)}")
             self._set_status("Import failed")
+
+    def _export_servers(self):
+        """Export selected servers to a text file."""
+        selection = self.server_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select one or more servers to export")
+            return
+
+        # Get selected servers
+        selected_servers = [self.servers[i] for i in selection]
+
+        # Export to data/exported-servers.txt
+        export_path = self.storage.data_dir / "exported-servers.txt"
+
+        try:
+            with open(export_path, 'w') as f:
+                f.write("# Exported server list\n")
+                f.write("# Format: Name: IP/hostname\n\n")
+                for server in selected_servers:
+                    f.write(f"{server.name}: {server.ip}\n")
+
+            messagebox.showinfo("Export Complete",
+                              f"Exported {len(selected_servers)} server(s) to:\n{export_path}")
+            self._set_status(f"Exported {len(selected_servers)} server(s)")
+
+        except Exception as e:
+            messagebox.showerror("Export Error", f"Failed to export servers:\n{str(e)}")
+            self._set_status("Export failed")
 
     def _test_selected_servers(self):
         """Test the currently selected server(s)."""
