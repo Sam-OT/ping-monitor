@@ -39,7 +39,7 @@ class PingMonitorApp:
 
         # State
         self.current_test_running = False
-        self.selected_duration = 60  # Default: 1 minute
+        self.target_ping_count = 60  # Default: 1 minute
         self.current_results = {}  # Store results: {server_name: PingResult}
         self.active_tests = 0  # Count of running tests
         self.cancel_event = threading.Event()  # Event to signal test cancellation
@@ -66,7 +66,7 @@ class PingMonitorApp:
         self._build_server_section(main_frame)
 
         # Middle section: Duration selector
-        self._build_duration_section(main_frame)
+        self._build_ping_count_section(main_frame)
 
         # Control section: Cancel button
         self._build_control_section(main_frame)
@@ -148,46 +148,58 @@ class PingMonitorApp:
         # Populate listbox
         self._refresh_server_list()
 
-    def _build_duration_section(self, parent):
-        """Build the duration selection section."""
+    def _build_ping_count_section(self, parent):
+        """Build the ping count selection section."""
         section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
         section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
 
-        tk.Label(section_frame, text="Test Duration:",
+        tk.Label(section_frame, text="Ping Count:",
                 **Styles.get_heading_style()).pack(side=tk.LEFT, padx=(0, Spacing.PAD_MEDIUM))
 
-        # Radio buttons for duration
-        self.duration_var = tk.IntVar(value=5)  # Default 5 seconds
-        self.use_custom_duration = tk.BooleanVar(value=False)
+        # Radio buttons for ping count
+        self.duration_var = tk.IntVar(value=60)  # Default 60 pings
 
-        durations = [
-            ("5 seconds", 5),
-            ("30 seconds", 30),
-            ("1 minute", 60),
-            ("5 minutes", 300)
+        ping_counts = [
+            ("5 pings", 5),
+            ("30 pings", 30),
+            ("60 pings", 60),
+            ("180 pings", 180),
+            ("300 pings", 300)
         ]
 
-        for text, value in durations:
+        for text, value in ping_counts:
             rb = tk.Radiobutton(section_frame, text=text, variable=self.duration_var,
                                value=value, bg=Colours.BG_PRIMARY, fg=Colours.TEXT_PRIMARY,
                                font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
                                selectcolor=Colours.BG_SECONDARY,
                                activebackground=Colours.BG_PRIMARY,
-                               cursor="hand2",
-                               command=lambda: self.use_custom_duration.set(False))
+                               cursor="hand2")
             rb.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
 
-        # Custom duration entry
-        tk.Label(section_frame, text="Custom (seconds):", bg=Colours.BG_PRIMARY,
-                font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL)).pack(
-                    side=tk.LEFT, padx=(Spacing.PAD_MEDIUM, Spacing.PAD_SMALL))
+        # Custom ping count radio button with entry
+        custom_frame = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
+        custom_frame.pack(side=tk.LEFT, padx=(Spacing.PAD_MEDIUM, 0))
 
-        self.custom_duration_entry = tk.Entry(section_frame,
-                                              font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
-                                              width=6)
-        self.custom_duration_entry.pack(side=tk.LEFT, padx=Spacing.PAD_SMALL)
-        self.custom_duration_entry.bind('<FocusIn>', lambda e: self.use_custom_duration.set(True))
-        self.custom_duration_entry.bind('<Return>', lambda e: self._on_duration_changed())
+        # Radio button for custom (value=-1 indicates custom mode)
+        tk.Radiobutton(custom_frame, text="Custom:", variable=self.duration_var,
+                      value=-1, bg=Colours.BG_PRIMARY, fg=Colours.TEXT_PRIMARY,
+                      font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
+                      selectcolor=Colours.BG_SECONDARY,
+                      activebackground=Colours.BG_PRIMARY,
+                      cursor="hand2").pack(side=tk.LEFT)
+
+        # Entry field
+        self.custom_ping_entry = tk.Entry(custom_frame,
+                                          font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
+                                          width=6)
+        self.custom_ping_entry.pack(side=tk.LEFT, padx=(Spacing.PAD_SMALL, 0))
+        self.custom_ping_entry.bind('<FocusIn>', lambda e: self.duration_var.set(-1))
+        self.custom_ping_entry.bind('<KeyPress>', lambda e: self.duration_var.set(-1))
+        self.custom_ping_entry.bind('<Return>', lambda e: self._on_ping_count_changed())
+
+        tk.Label(custom_frame, text="pings", bg=Colours.BG_PRIMARY,
+                fg=Colours.TEXT_PRIMARY,
+                font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL)).pack(side=tk.LEFT, padx=(2, 0))
 
     def _build_control_section(self, parent):
         """Build the control section with test buttons and ping label."""
@@ -506,8 +518,8 @@ class PingMonitorApp:
             return
 
         # Update duration (in case custom was entered)
-        self._on_duration_changed()
-        if self.selected_duration <= 0:
+        self._on_ping_count_changed()
+        if self.target_ping_count <= 0:
             return  # Invalid duration, warning already shown
 
         # Clear previous results and graphs
@@ -548,7 +560,7 @@ class PingMonitorApp:
         self.cancel_event.clear()  # Clear any previous cancel signal
         self.cancel_button.config(state=tk.NORMAL)  # Enable cancel button
         self.batch_button.config(state=tk.DISABLED)  # Disable batch button during test
-        self.ping_label.config(text=f"0/{self.selected_duration}")  # Initialize ping label
+        self.ping_label.config(text=f"0/{self.target_ping_count}")  # Initialize ping label
 
         for index, server in enumerate(selected_servers):
             self._start_ping_test(server, server_index=index)
@@ -680,19 +692,19 @@ class PingMonitorApp:
             print(f"Error saving graphs: {e}")
             return False, ""
 
-    def _on_duration_changed(self):
-        """Handle duration selection change."""
-        if self.use_custom_duration.get():
+    def _on_ping_count_changed(self):
+        """Handle ping count selection change."""
+        if self.duration_var.get() == -1:  # Custom mode
             try:
-                custom = int(self.custom_duration_entry.get())
+                custom = int(self.custom_ping_entry.get())
                 if custom > 0:
-                    self.selected_duration = custom
+                    self.target_ping_count = custom
                 else:
-                    messagebox.showwarning("Invalid Duration", "Duration must be positive")
+                    messagebox.showwarning("Invalid Count", "Ping count must be positive")
             except ValueError:
-                messagebox.showwarning("Invalid Duration", "Please enter a valid number")
+                messagebox.showwarning("Invalid Count", "Please enter a valid number")
         else:
-            self.selected_duration = self.duration_var.get()
+            self.target_ping_count = self.duration_var.get()
 
     def _start_ping_test(self, server: Server, server_index: int = 0):
         """Start a ping test for a specific server."""
@@ -701,8 +713,8 @@ class PingMonitorApp:
         if not graph_panel:
             return
 
-        # Start graph with duration
-        graph_panel.start_new_test(server.name, server.ip, self.selected_duration)
+        # Start graph with ping count
+        graph_panel.start_new_test(server.name, server.ip, self.target_ping_count)
 
         def run_test():
             def progress_callback(latency, current, total):
@@ -713,7 +725,7 @@ class PingMonitorApp:
                 self.root.after(0, lambda l=latency, c=current, t=total: update_ui(l, c, t))
 
             result = self.ping_service.ping_continuous(
-                server.name, server.ip, self.selected_duration, progress_callback, self.cancel_event,
+                server.name, server.ip, self.target_ping_count, progress_callback, self.cancel_event,
                 server_index=server_index
             )
 
@@ -836,7 +848,7 @@ class PingMonitorApp:
 
         # Confirm action
         if not messagebox.askyesno("Batch Test",
-                                  f"Run {self.selected_duration}s ping test on all {len(self.servers)} servers?"):
+                                  f"Test all {len(self.servers)} servers with {self.target_ping_count} pings each?"):
             return
 
         self.current_test_running = True
@@ -850,7 +862,7 @@ class PingMonitorApp:
         self.cancel_event.clear()
         self.cancel_button.config(state=tk.NORMAL)
         self.batch_button.config(state=tk.DISABLED)
-        self.ping_label.config(text=f"0/{self.selected_duration}")
+        self.ping_label.config(text=f"0/{self.target_ping_count}")
 
         self._set_status("Running batch test...")
 
@@ -866,7 +878,7 @@ class PingMonitorApp:
                               self._set_status(f"Testing {idx+1}/{len(self.servers)}: {s.name}..."))
 
                 result = self.ping_service.ping_continuous(
-                    server.name, server.ip, self.selected_duration,
+                    server.name, server.ip, self.target_ping_count,
                     cancel_event=self.cancel_event,
                     server_index=i
                 )

@@ -111,18 +111,18 @@ class PingService:
         self,
         server_name: str,
         ip: str,
-        duration_seconds: int,
+        target_ping_count: int,
         progress_callback: Optional[Callable[[float, int, int], None]] = None,
         cancel_event: Optional[threading.Event] = None,
         server_index: int = 0
     ) -> PingResult:
         """
-        Ping an IP address continuously for a specified duration.
+        Ping an IP address a specified number of times.
 
         Args:
             server_name: Name of the server being pinged
             ip: IP address to ping
-            duration_seconds: How long to ping (in seconds)
+            target_ping_count: Number of pings to perform
             progress_callback: Optional callback(latency, current, total) called after each ping
             cancel_event: Optional threading.Event to signal cancellation
             server_index: Index for calculating staggered start offset (0.1s per index)
@@ -134,31 +134,45 @@ class PingService:
         offset_seconds = server_index * 0.1
         time.sleep(offset_seconds)
 
+        # Check cancellation before starting
+        if cancel_event and cancel_event.is_set():
+            return PingResult(server_name, ip, [])
+
         latencies = []
         start_time = time.time()
 
-        # Ping once per second for the specified duration
-        ping_count = 0
-        while time.time() - start_time < duration_seconds:
+        # Ping exactly target_ping_count times
+        for ping_number in range(1, target_ping_count + 1):
             # Check if cancellation was requested
             if cancel_event and cancel_event.is_set():
                 break
+
             latency = self.ping_once(ip)
 
             if latency is not None:
                 latencies.append(latency)
 
-            ping_count += 1
-
-            # Call progress callback with ping count
+            # Call progress callback
             if progress_callback:
-                progress_callback(latency, ping_count, duration_seconds)
+                progress_callback(latency, ping_number, target_ping_count)
 
-            # Wait for the rest of the second
-            elapsed = time.time() - start_time
-            next_ping_time = ping_count  # Should ping at 1s, 2s, 3s, etc.
-            if next_ping_time > elapsed:
-                time.sleep(next_ping_time - elapsed)
+            # Wait for the rest of the second (to maintain ~1 ping/second)
+            # Only sleep if not the last ping
+            if ping_number < target_ping_count:
+                elapsed = time.time() - start_time
+                next_ping_time = ping_number  # Should ping at 1s, 2s, 3s intervals
+                time_to_wait = next_ping_time - elapsed
+
+                if time_to_wait > 0:
+                    # Check if we should cancel during sleep
+                    if cancel_event:
+                        # Sleep in small increments to be responsive to cancellation
+                        sleep_remaining = time_to_wait
+                        while sleep_remaining > 0 and not cancel_event.is_set():
+                            time.sleep(min(0.1, sleep_remaining))
+                            sleep_remaining -= 0.1
+                    else:
+                        time.sleep(time_to_wait)
 
         return PingResult(server_name, ip, latencies)
 

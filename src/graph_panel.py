@@ -31,7 +31,7 @@ class GraphPanel:
         # Incremental update tracking
         self.line = None  # Line2D object for connecting line
         self.current_ylim_max = 100  # Track current y-axis maximum
-        self.duration = 0  # Test duration in seconds
+        self.target_ping_count = 0  # Target number of pings
 
         self._setup_graph()
 
@@ -87,19 +87,19 @@ class GraphPanel:
 
         self.canvas.draw_idle()
 
-    def start_new_test(self, server_name: str, server_ip: str = "", duration: int = 60):
+    def start_new_test(self, server_name: str, server_ip: str = "", target_ping_count: int = 60):
         """
         Start a new ping test, clearing previous data.
 
         Args:
             server_name: Name of the server being tested
             server_ip: IP address of the server
-            duration: Test duration in seconds
+            target_ping_count: Number of pings to perform
         """
         # Clear data first
         self.ping_numbers = []
         self.latencies = []
-        self.duration = duration
+        self.target_ping_count = target_ping_count
 
         # Title format: "Server Name: IP" - store for later use
         title = f'{server_name}: {server_ip}' if server_ip else server_name
