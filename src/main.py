@@ -80,14 +80,14 @@ class PingMonitorApp:
     def _build_server_section(self, parent):
         """Build the server selection and management section."""
         section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY)
-        section_frame.pack(fill=tk.BOTH, expand=True, pady=(0, Spacing.PAD_MEDIUM))
+        section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
 
         # Header
         tk.Label(section_frame, text="Servers", **Styles.get_heading_style()).pack(anchor=tk.W)
 
         # Container for listbox and buttons
         list_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
-        list_container.pack(fill=tk.BOTH, expand=True, pady=Spacing.PAD_SMALL)
+        list_container.pack(fill=tk.X, pady=Spacing.PAD_SMALL)
 
         # Listbox with scrollbar
         list_frame = tk.Frame(list_container, bg=Colours.BG_PRIMARY)
@@ -100,7 +100,7 @@ class PingMonitorApp:
             list_frame,
             yscrollcommand=scrollbar.set,
             font=(Fonts.get_default_family(), Fonts.SIZE_NORMAL),
-            height=8,
+            height=10,
             relief=tk.SUNKEN,
             bd=2,
             selectmode=tk.EXTENDED  # Allow multi-select
@@ -239,7 +239,7 @@ class PingMonitorApp:
     def _build_stats_section(self, parent):
         """Build the statistics display section."""
         section_frame = tk.Frame(parent, bg=Colours.BG_PRIMARY, relief=tk.SUNKEN, bd=1)
-        section_frame.pack(fill=tk.BOTH, expand=True, pady=(0, Spacing.PAD_MEDIUM))
+        section_frame.pack(fill=tk.X, pady=(0, Spacing.PAD_MEDIUM))
 
         # Header
         header = tk.Frame(section_frame, bg=Colours.BG_SECONDARY, relief=tk.RAISED, bd=1)
@@ -250,7 +250,7 @@ class PingMonitorApp:
 
         # Container for results (will hold per-server stats)
         self.stats_container = tk.Frame(section_frame, bg=Colours.BG_PRIMARY)
-        self.stats_container.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+        self.stats_container.pack(fill=tk.X, padx=2, pady=2)
 
         # Initial message
         self.stats_placeholder = tk.Label(self.stats_container, text="No test results yet",
@@ -780,7 +780,7 @@ class PingMonitorApp:
                              height=len(self.current_results) + 2,  # +2 for header and separator
                              wrap=tk.NONE,
                              cursor="arrow")
-        text_widget.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+        text_widget.pack(fill=tk.BOTH, padx=4, pady=4)
 
         # Build header with left-aligned columns
         header = f"{'Server':<25} {'Mean':<12} {'Median':<12} {'Min':<12} {'Max':<12} {'Std Dev':<12}\n"
@@ -789,7 +789,7 @@ class PingMonitorApp:
         text_widget.tag_config('header', font=(Fonts.get_monospace_family(), Fonts.SIZE_NORMAL, 'bold'))
 
         # Add separator line
-        separator = "-" * 80 + "\n"
+        separator = "-" * 90 + "\n"
         text_widget.insert('end', separator)
 
         # Add results for each server (sorted alphabetically)
