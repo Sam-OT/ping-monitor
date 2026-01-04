@@ -208,8 +208,22 @@ class GraphPanel:
         # Only redraw (non-blocking)
         self.canvas.draw_idle()
 
-    def finalize_test(self):
-        """Finalize the graph after test completion."""
+    def finalize_test(self, mean: Optional[float] = None, median: Optional[float] = None):
+        """Finalize the graph after test completion.
+
+        Args:
+            mean: Optional mean latency to display in title
+            median: Optional median latency to display in title
+        """
+        # Update title with stats if provided
+        if mean is not None and median is not None:
+            title = f"{self.current_server} | Mean: {mean:.0f}ms | Median: {median:.0f}ms"
+            self.ax.set_title(title,
+                             fontsize=Fonts.SIZE_TITLE,
+                             fontfamily=Fonts.get_default_family(),
+                             color=Colours.TEXT_PRIMARY,
+                             pad=10)
+
         # Add legend if there were any failed pings
         if any(lat == 0 for lat in self.latencies):
             # Check if legend already exists, if not add it
@@ -217,4 +231,6 @@ class GraphPanel:
                 self.ax.scatter([], [], color=Colours.STATUS_FAILED,
                               marker='x', s=50, label='Failed')
                 self.ax.legend(loc='upper right', fontsize=Fonts.SIZE_SMALL)
-                self.canvas.draw_idle()
+
+        # Redraw if we updated title or legend
+        self.canvas.draw_idle()

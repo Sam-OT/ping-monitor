@@ -36,6 +36,11 @@ class PingResult:
         return max(self.latencies) if self.latencies else None
 
     @property
+    def median(self) -> Optional[float]:
+        """Calculate median latency in milliseconds."""
+        return statistics.median(self.latencies) if self.latencies else None
+
+    @property
     def std_dev(self) -> Optional[float]:
         """Calculate standard deviation of latencies."""
         return statistics.stdev(self.latencies) if len(self.latencies) > 1 else 0.0
@@ -46,10 +51,11 @@ class PingResult:
             # Format to match Results pane display
             display_name = self.server_name[:24] if len(self.server_name) > 24 else self.server_name
             mean_str = f"{self.mean:.0f}ms"
+            median_str = f"{self.median:.0f}ms"
             min_str = f"{self.min:.0f}ms"
             max_str = f"{self.max:.0f}ms"
             std_str = f"{self.std_dev:.1f}ms"
-            return f"{display_name:<25} {mean_str:<12} {min_str:<12} {max_str:<12} {std_str:<12}"
+            return f"{display_name:<25} {mean_str:<12} {median_str:<12} {min_str:<12} {max_str:<12} {std_str:<12}"
         return f"{self.server_name:<25} {'Failed':<12}"
 
 

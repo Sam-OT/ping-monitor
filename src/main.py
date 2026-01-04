@@ -655,10 +655,10 @@ class PingMonitorApp:
                 ax.set_xlabel('Ping Number', fontsize=Fonts.SIZE_NORMAL)
                 ax.set_ylabel('Latency (ms)', fontsize=Fonts.SIZE_NORMAL)
 
-                # Set title with format "SERVER_NAME: IP | Mean: XXms"
+                # Set title with format "SERVER_NAME: IP | Mean: XXms | Median: XXms"
                 result = self.current_results.get(server_name)
-                if result and result.mean is not None:
-                    title = f"{graph_panel.current_server} | Mean: {result.mean:.0f}ms"
+                if result and result.mean is not None and result.median is not None:
+                    title = f"{graph_panel.current_server} | Mean: {result.mean:.0f}ms | Median: {result.median:.0f}ms"
                 else:
                     title = graph_panel.current_server
                 ax.set_title(title, fontsize=Fonts.SIZE_TITLE)
@@ -743,7 +743,7 @@ class PingMonitorApp:
         # Finalize graph for this server
         graph_panel = self.graph_panels.get(result.server_name)
         if graph_panel:
-            graph_panel.finalize_test()
+            graph_panel.finalize_test(result.mean, result.median)
 
         # Decrement active tests counter
         self.active_tests -= 1
@@ -783,7 +783,7 @@ class PingMonitorApp:
         text_widget.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
 
         # Build header with left-aligned columns
-        header = f"{'Server':<25} {'Mean':<12} {'Min':<12} {'Max':<12} {'Std Dev':<12}\n"
+        header = f"{'Server':<25} {'Mean':<12} {'Median':<12} {'Min':<12} {'Max':<12} {'Std Dev':<12}\n"
         text_widget.insert('1.0', header)
         text_widget.tag_add('header', '1.0', '1.end')
         text_widget.tag_config('header', font=(Fonts.get_monospace_family(), Fonts.SIZE_NORMAL, 'bold'))
@@ -801,10 +801,11 @@ class PingMonitorApp:
             if result.mean is not None:
                 # Format values with ms suffix, then align
                 mean_str = f"{result.mean:.0f}ms"
+                median_str = f"{result.median:.0f}ms"
                 min_str = f"{result.min:.0f}ms"
                 max_str = f"{result.max:.0f}ms"
                 std_str = f"{result.std_dev:.1f}ms"
-                line = f"{display_name:<25} {mean_str:<12} {min_str:<12} {max_str:<12} {std_str:<12}\n"
+                line = f"{display_name:<25} {mean_str:<12} {median_str:<12} {min_str:<12} {max_str:<12} {std_str:<12}\n"
                 text_widget.insert('end', line)
 
                 # Colour-code the mean value
@@ -813,6 +814,13 @@ class PingMonitorApp:
                 end_pos = f"{line_num}.{26 + len(mean_str)}"
                 text_widget.tag_add(f'mean_{line_num}', start_pos, end_pos)
                 text_widget.tag_config(f'mean_{line_num}', foreground=mean_color)
+
+                # Colour-code the median value
+                median_color = Styles.get_status_colour(result.median)
+                median_start_pos = f"{line_num}.39"
+                median_end_pos = f"{line_num}.{39 + len(median_str)}"
+                text_widget.tag_add(f'median_{line_num}', median_start_pos, median_end_pos)
+                text_widget.tag_config(f'median_{line_num}', foreground=median_color)
             else:
                 line = f"{display_name:<25} {'Failed':<12}\n"
                 text_widget.insert('end', line)
