@@ -72,13 +72,13 @@ class PingService:
         try:
             # Platform-specific ping command
             if self.system == "Windows":
-                # Windows: ping -n 1 -w 1000 IP
+                # Windows: ping -n 1 -w 5000 IP
                 # CREATE_NO_WINDOW prevents console window from appearing
                 result = subprocess.run(
-                    ["ping", "-n", "1", "-w", "1000", ip],
+                    ["ping", "-n", "1", "-w", "5000", ip],
                     capture_output=True,
                     text=True,
-                    timeout=2,
+                    timeout=6,
                     creationflags=subprocess.CREATE_NO_WINDOW
                 )
                 # Parse output: "time=XXms" or "time<1ms"
@@ -90,12 +90,12 @@ class PingService:
                 if match:
                     return float(match.group(1))
             else:
-                # Linux/Mac: ping -c 1 -W 1 IP
+                # Linux/Mac: ping -c 1 -W 5 IP
                 result = subprocess.run(
-                    ["ping", "-c", "1", "-W", "1", ip],
+                    ["ping", "-c", "1", "-W", "5", ip],
                     capture_output=True,
                     text=True,
-                    timeout=2
+                    timeout=6
                 )
                 # Parse output: "time=XX.X ms"
                 match = re.search(r'time=(\d+\.?\d*)\s*ms', result.stdout)
