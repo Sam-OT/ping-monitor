@@ -550,8 +550,8 @@ class PingMonitorApp:
         self.batch_button.config(state=tk.DISABLED)  # Disable batch button during test
         self.ping_label.config(text=f"0/{self.selected_duration}")  # Initialize ping label
 
-        for server in selected_servers:
-            self._start_ping_test(server)
+        for index, server in enumerate(selected_servers):
+            self._start_ping_test(server, server_index=index)
 
     def _cancel_test(self):
         """Cancel the currently running test."""
@@ -694,7 +694,7 @@ class PingMonitorApp:
         else:
             self.selected_duration = self.duration_var.get()
 
-    def _start_ping_test(self, server: Server):
+    def _start_ping_test(self, server: Server, server_index: int = 0):
         """Start a ping test for a specific server."""
         # Get the graph panel for this server
         graph_panel = self.graph_panels.get(server.name)
@@ -713,7 +713,8 @@ class PingMonitorApp:
                 self.root.after(0, lambda l=latency, c=current, t=total: update_ui(l, c, t))
 
             result = self.ping_service.ping_continuous(
-                server.name, server.ip, self.selected_duration, progress_callback, self.cancel_event
+                server.name, server.ip, self.selected_duration, progress_callback, self.cancel_event,
+                server_index=server_index
             )
 
             # Update UI with results on main thread
@@ -866,7 +867,8 @@ class PingMonitorApp:
 
                 result = self.ping_service.ping_continuous(
                     server.name, server.ip, self.selected_duration,
-                    cancel_event=self.cancel_event
+                    cancel_event=self.cancel_event,
+                    server_index=i
                 )
                 results.append(str(result))
 

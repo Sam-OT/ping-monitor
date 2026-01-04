@@ -113,7 +113,8 @@ class PingService:
         ip: str,
         duration_seconds: int,
         progress_callback: Optional[Callable[[float, int, int], None]] = None,
-        cancel_event: Optional[threading.Event] = None
+        cancel_event: Optional[threading.Event] = None,
+        server_index: int = 0
     ) -> PingResult:
         """
         Ping an IP address continuously for a specified duration.
@@ -124,13 +125,14 @@ class PingService:
             duration_seconds: How long to ping (in seconds)
             progress_callback: Optional callback(latency, current, total) called after each ping
             cancel_event: Optional threading.Event to signal cancellation
+            server_index: Index for calculating staggered start offset (0.1s per index)
 
         Returns:
             PingResult object with statistics
         """
-        # Add random offset (0-0.9 seconds) to stagger pings across servers
-        initial_offset = random.uniform(0, 0.9)
-        time.sleep(initial_offset)
+        # Add fixed offset (0.1 seconds per server index) to stagger pings across servers
+        offset_seconds = server_index * 0.1
+        time.sleep(offset_seconds)
 
         latencies = []
         start_time = time.time()
